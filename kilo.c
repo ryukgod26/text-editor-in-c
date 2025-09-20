@@ -15,10 +15,12 @@ SetConsoleMode(global_hIn,orig_mode);
 }
 
 void enableRawMode() {
-    HANDLE global_hIn = GetStdHandle(STD_INPUT_HANDLE);
-    atexit(disableRawMode);
+    global_hIn = GetStdHandle(STD_INPUT_HANDLE);
     DWORD mode = orig_mode;
     GetConsoleMode(global_hIn, &mode);
+    atexit(disableRawMode);
+    
+    
 
     //To Turn Off ECHO and Special Inputs
     // mode &= ~(ENAB )
