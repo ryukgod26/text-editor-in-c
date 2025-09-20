@@ -4,6 +4,7 @@
 #include<unistd.h>
 #include<stdio.h>
 #include<ctype.h>
+#include<stdlib.h>
 
 struct termios orig_termios;
 
@@ -15,10 +16,11 @@ void enableRawMode(){
 //struct termios raw;
 
 tcgetattr(STDIN_FILENO,&orig_termios);
-disableRawMode();
+atexit(disableRawMode);
 
 struct termios raw = orig_termios;
-raw.c_lflag &= ~(ECHO | ICANON);
+raw.c_iflag &= ~(IXON);
+raw.c_lflag &= ~(ECHO | ICANON | ISIG | IEXTEN);
 
 tcsetattr(STDIN_FILENO, TCSAFLUSH , &raw);
 

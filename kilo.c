@@ -1,7 +1,6 @@
 #include<stdbool.h>
 #include <io.h>
 #include <fcntl.h>
-#define STDIN_FILENO 0
 #include<windows.h>
 #include<conio.h>
 #include<stdlib.h>
@@ -21,8 +20,9 @@ void enableRawMode() {
     DWORD mode = orig_mode;
     GetConsoleMode(global_hIn, &mode);
 
-    //To Turn Off E
-    mode &= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT);
+    //To Turn Off ECHO and Special Inputs
+    // mode &= ~(ENAB )
+    mode &= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT );
     SetConsoleMode(global_hIn, mode);
 }
 
