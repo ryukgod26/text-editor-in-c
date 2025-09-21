@@ -11,20 +11,57 @@
 #include<stdint.h>
 
 struct editorConfig{
+uint16_t screenRows;
+uint16_t screenCols;
 struct termios orig_termios;
 };
 
 struct editorConfig E;
 
 
+char editorReadKey();
+void editoDrawRows();
+void disableRawMode();
+char editorReadKey();
+void editorProcessKeyprocess();
+void editorRefreshScreen();
+void die(char *s);
+void enableRawMode();
+void initEditor();
+int8_t getWindowsSize(uint16_t *x, uint16_t*y);
+int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 
+int8_t getCursorPosition(uint16_t* rows, uint16_t* cols)
+{
 
+if(write(STDOUT_FILENO,"\x1b[6n",4) != 4) return -1;
 
+char buf[32];
+uint8_t i = 0;
+printf("\r\n");
 
-int8_t getWindowsSize(int *x, int*y){
+while(read(STDIN_FILENO,&c,1) == 1)
+{
+if(iscntrl(c))
+{
+printf("%d\r\n",c);
+}
+else
+{
+printf("%d (%c)\r\n",c,c);
+}
+}
+editorReadKey();
+return -1;
+
+}
+
+int8_t getWindowsSize(uint16_t *x, uint16_t*y){
     struct winsize ws;
-    if(ioctl(STDOUT_FILENO,TIOCGWINSZ,&ws) == -1 || ws.ws_col == 0)    {
-        return -1;
+    if(1 || ioctl(STDOUT_FILENO,TIOCGWINSZ,&ws) == -1 || ws.ws_col == 0) {
+        if(write(STDOUT_FILENO,"\x1b[999C\x1b[999B",12) != 12) return -1;
+        editorReadKey();
+        return getCursorPosition(x,y);
     }
     else{
         *x = ws.ws_row;
@@ -32,8 +69,6 @@ int8_t getWindowsSize(int *x, int*y){
         return 0;
     }
 }
-
-
 
 void die(char *s)
 {
@@ -46,13 +81,9 @@ void die(char *s)
 
 void editoDrawRows()
 {
-    int rows,cols;
-    int8_t result = getWindowsSize(&rows,&cols) ;
-    if(result == -1){
-        die("rows/cols");
-    }
-    int y;
-    for (y = 0; y < rows; y++)
+
+    uint16_t y;
+    for (y = 0; y < E.screenCols; y++)
     {
         write(STDOUT_FILENO, "~\r\n", 3);
     }
@@ -102,6 +133,11 @@ void editorRefreshScreen()
     write(STDOUT_FILENO,"\x1b[H",3);
 }
 
+void initEditor()
+{
+    if(getWindowsSize(&E.screenRows,&E.screenCols) == -1) die("init");
+}
+
 void enableRawMode()
 {
     // struct termios raw;
@@ -125,7 +161,7 @@ void enableRawMode()
 
 int main()
 {
-
+    initEditor();
     enableRawMode();
 
     while (1)
