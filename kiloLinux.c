@@ -33,24 +33,34 @@ int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols)
 {
+char buf[32];
+uint8_t i = 0;
 
 if(write(STDOUT_FILENO,"\x1b[6n",4) != 4) return -1;
 
-char buf[32];
-uint8_t i = 0;
-printf("\r\n");
+while (i < sizeof(buf)){
+    if(read(STDIN_FILENO,&buf[i],1) != 1) break;
+    if(buf[i] == 'R') break;
+    i++;
+}
 
-while(read(STDIN_FILENO,&c,1) == 1)
-{
-if(iscntrl(c))
-{
-printf("%d\r\n",c);
-}
-else
-{
-printf("%d (%c)\r\n",c,c);
-}
-}
+buf[i] = '\0';
+
+printf("\r\n&buf[1] '%s'\r\n",&buf[1]);
+
+
+
+// while(read(STDIN_FILENO,&c,1) == 1)
+// {
+// if(iscntrl(c))
+// {
+// printf("%d\r\n",c);
+// }
+// else
+// {
+// printf("%d (%c)\r\n",c,c);
+// }
+// }
 editorReadKey();
 return -1;
 
