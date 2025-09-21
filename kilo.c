@@ -7,6 +7,7 @@
 #include<ctype.h>
 #include<stdio.h>
 #include<errno.h>
+#include<stdint.h>
 
 DWORD orig_mode;
 HANDLE global_hIn;
@@ -15,6 +16,7 @@ void die(const char *s){
     perror(s);
     exit(EXIT_FAILURE);
 }
+
 
 void disableRawMode(){
 if(SetConsoleMode(global_hIn,orig_mode) == -1) die("Error on Disable Raw Mode Set Console Mode");
