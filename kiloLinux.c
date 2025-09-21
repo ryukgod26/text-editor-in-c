@@ -1,4 +1,6 @@
 #define _DEFAULT_SOURCE
+#define CTRL_KEY(k) ((k) & 0x1f)
+
 
 #include<termios.h>
 #include<unistd.h>
@@ -19,6 +21,32 @@ if(tcsetattr(STDIN_FILENO , TCSAFLUSH , &orig_termios) == -1)
 die("disableRow");
 }
 
+
+char editorReadKey()
+{
+int nread;
+char c;
+while( (nread = read(STDIN_FILENO,&c,1)) != -1){
+if(nread == -1 && errno != EAGAIN) die("read");
+}	
+return c;
+}
+
+void editorProcessKeyprocess()
+{
+char c = editorReadKey();
+switch(c)
+{
+	case CTRL_KEY('q'):
+		exit(0);
+		break;
+}
+}
+
+void editorRefreshScreen()
+{
+write(STDIN_FILENO,"\x1b[2J",4);
+}
 void enableRawMode(){
 //struct termios raw;
 
@@ -41,9 +69,8 @@ int main(){
 
 enableRawMode();
 
-char c;
-
 while(1){
+	/*
     c = '\0';
     if( read(STDIN_FILENO, &c , 1) == -1 && errno != EAGAIN ) die("read");
     if(iscntrl(c)){
@@ -52,7 +79,10 @@ while(1){
     else{
         printf("%d (%c)\r\n",c,c);
     }
-    if (c == 'q') break;
+    if (c == CTRL_KEY('q')) break;
+    */
+editorRefreshScreen();
+editorProcessKeyprocess();
 }
 
 return 0;
