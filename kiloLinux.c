@@ -122,8 +122,23 @@ void editoDrawRows(abuf* ab)
     uint16_t y;
     for (y = 0; y < E.screenCols; y++)
     {
+	    if(y == E.screenRows/3){
  //       write(STDOUT_FILENO, "~", 1);
+	char welcome[80];
+	int welcomelen = snprintf(welcome,sizeof(welcome),"Kilo Editor -- version %s",KILO_VERSION);
+if(welcomelen > E.screenCols) welcomelen = E.screenCols;
+int padding = (E.screenCols - welcomelen) /2;
+if(padding){
+abAppend(ab,"~",1);
+padding--;
+}
+while(padding--) abAppend(ab," " ,1);
+abAppend(ab,welcome,welcomelen);
+
+	    }
+	    else{
 	abAppend(ab,"~",1);
+	    }
 	abAppend(ab,"\x1b[K",3);
 	if(y < E.screenRows - 1 ){
 //	write(STDOUT_FILENO,"\r\n",2);
