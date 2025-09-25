@@ -1,6 +1,7 @@
 #define _DEFAULT_SOURCE
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define ABUF_INIT {NULL,0}
+#define KILO_VERSION "0.0.1"
 
 #include <termios.h>
 #include <unistd.h>
@@ -11,6 +12,7 @@
 #include<sys/ioctl.h>
 #include<stdint.h>
 #include<inttypes.h>
+#include<string.h>
 
 struct editorConfig{
 uint16_t screenRows;
@@ -18,15 +20,16 @@ uint16_t screenCols;
 struct termios orig_termios;
 };
 
-struct ebuf{
+typedef struct abuf{
 char* b;
 int len;
-}
+} abuf;
 
 
 struct editorConfig E;
 
-
+void abAppend(abuf* ,const char*, int len);
+void abFree(abuf*);
 char editorReadKey();
 void editoDrawRows();
 void disableRawMode();
@@ -38,6 +41,22 @@ void enableRawMode();
 void initEditor();
 int8_t getWindowsSize(uint16_t *x, uint16_t*y);
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
+
+
+void abAppend(abuf* ab, const char* s, int len)
+{
+char* new = realloc(ab->b,ab->len + len);
+
+if(new == NULL) return;
+memcpy(&new[ab->len],s,len);
+ab->b = new;
+ab->len += len;
+}
+
+void abFree(abuf* ab)
+{
+free(ab->b);
+}
 
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols)
 {
@@ -98,15 +117,17 @@ void die(char *s)
     exit(EXIT_FAILURE);
 }
 
-void editoDrawRows()
+void editoDrawRows(abuf* ab)
 {
-
     uint16_t y;
     for (y = 0; y < E.screenCols; y++)
     {
-        write(STDOUT_FILENO, "~", 1);
+ //       write(STDOUT_FILENO, "~", 1);
+	abAppend(ab,"~",1);
+	abAppend(ab,"\x1b[K",3);
 	if(y < E.screenRows - 1 ){
-	write(STDOUT_FILENO,"\r\n",2);
+//	write(STDOUT_FILENO,"\r\n",2);
+	abAppend(ab,"\r\n",2);
 	}
     }
 }
@@ -146,13 +167,30 @@ void editorProcessKeyprocess()
 
 void editorRefreshScreen()
 {
+    abuf ab = ABUF_INIT;
 
-    write(STDOUT_FILENO, "\x1b[2J", 4);
-    write(STDOUT_FILENO, "\x1b[H", 3);
 
-    editoDrawRows();
+    /*write(STDOUT_FILENO, "\x1b[2J", 4);
+    write(STDOUT_FILENO, "\x1b[H", 3);*/
 
-    write(STDOUT_FILENO,"\x1b[H",3);
+    //Hiding the cursor when Drawing Tildes on the Screen.
+    abAppend(&ab,"\x1b[?25l",6);
+
+//Used to Clear the screen at once but we now clear each line one by one.
+//abAppend(&ab,"\x1b[2J",4);
+    abAppend(&ab,"\x1b[H",3);
+
+    editoDrawRows(&ab);
+
+//    write(STDOUT_FILENO,"\x1b[H",3);
+    abAppend(&ab,"\x1b[H",3);
+
+    //Making the Cursor Visible Again After Drawing The Tildes
+    abAppend(&ab,"\x1b[?25h",6);
+
+    //Writing the whole Buffer
+    write(STDOUT_FILENO,ab.b,ab.len);
+    abFree(&ab);
 }
 
 void initEditor()
