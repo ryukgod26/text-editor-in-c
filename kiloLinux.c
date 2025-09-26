@@ -15,6 +15,7 @@
 #include<string.h>
 
 struct editorConfig{
+int cx,cy;
 uint16_t screenRows;
 uint16_t screenCols;
 struct termios orig_termios;
@@ -25,9 +26,17 @@ char* b;
 int len;
 } abuf;
 
+enum editorKey
+{
+ARROW_UP = 'w',
+ARROW_DOWN='s',
+ARROW_RIGHT='d',
+ARROW_LEFT='a'
+}
 
 struct editorConfig E;
 
+void editorMoveCursor(char);
 void abAppend(abuf* ,const char*, int len);
 void abFree(abuf*);
 char editorReadKey();
@@ -42,6 +51,25 @@ void initEditor();
 int8_t getWindowsSize(uint16_t *x, uint16_t*y);
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 
+
+void editorMoveCursor(char key)
+{
+switch(key)
+{
+	case ARROW_LEFT:
+		E.cx--;
+		break;
+	case ARROW_DOWN:
+		E.cy++;
+		break;
+	case ARROW_UP:
+		E.cy--;
+		break;
+	case ARROW_RIGHT:
+		E.cx++;
+		break;
+}
+}
 
 void abAppend(abuf* ab, const char* s, int len)
 {
@@ -162,6 +190,24 @@ char editorReadKey()
         if (nread == -1 && errno != EAGAIN)
             die("read");
     }
+    if(c == '\x1b')
+    {
+    char seq[3];
+
+    if(read(STDIN_FILENO,&seq[0],1) != 1) return '\x1b';
+    if(read(STDIN_FILENO,&seq[1],1) != 1) return '\x1b';
+
+    if (seq[0] == '[')
+   	 {
+    		switch(seq[1])
+		{
+		  	case 'A': return ARROW_UP;
+			case 'B': return ARROW_DOWN;
+			case 'C': return ARROW_RIGHT;		  
+			case 'D': return ARROW_LEFT;
+		}
+    	}
+    }
     return c;
 }
 
@@ -174,9 +220,14 @@ void editorProcessKeyprocess()
     case CTRL_KEY('q'):
         write(STDOUT_FILENO, "\x1b[2J", 4);
         write(STDOUT_FILENO, "\x1b[H", 3);
-
-        exit(EXIT_SUCCESS);
-        break;
+	exit(EXIT_SUCCESS);
+	break;
+    case ARROW_UP:
+    case ARROW_LEFT:
+    case ARROW_DOWN:
+    case ARROW_RIGHT:
+	editorMoveCursor(c);
+	break;
     }
 }
 
@@ -193,12 +244,17 @@ void editorRefreshScreen()
 
 //Used to Clear the screen at once but we now clear each line one by one.
 //abAppend(&ab,"\x1b[2J",4);
-    abAppend(&ab,"\x1b[H",3);
+  abAppend(&ab,"\x1b[H",3);
 
     editoDrawRows(&ab);
 
+    char buf[32];
+    snprintf(buf,sizeof(buf),"\x1b[%d;%dH",E.cy +1,E.cx+1);
+    abAppend(&ab,buf,strlen(buf));
+
+
 //    write(STDOUT_FILENO,"\x1b[H",3);
-    abAppend(&ab,"\x1b[H",3);
+  //  abAppend(&ab,"\x1b[H",3);
 
     //Making the Cursor Visible Again After Drawing The Tildes
     abAppend(&ab,"\x1b[?25h",6);
@@ -210,6 +266,8 @@ void editorRefreshScreen()
 
 void initEditor()
 {
+	E.cx = 0;
+	E.cy = 0;
     if(getWindowsSize(&E.screenRows,&E.screenCols) == -1) die("init error");
 }
 
