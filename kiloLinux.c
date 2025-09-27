@@ -1,4 +1,6 @@
 #define _DEFAULT_SOURCE
+#define _BSD_SOURCE
+#define _GNU_SOURCE
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define ABUF_INIT {NULL,0}
 #define KILO_VERSION "0.0.1"
@@ -27,7 +29,7 @@ int cx,cy;
 uint16_t screenRows;
 uint16_t screenCols;
 int numRows;
-erow row;
+erow *row;
 struct termios orig_termios;
 };
 
@@ -53,7 +55,7 @@ enum editorKey
 
 struct editorConfig E;
 
-void editorOpen();
+void editorOpen(char*);
 void editorMoveCursor(int);
 void abAppend(abuf* ,const char*, int len);
 void abFree(abuf*);
@@ -67,17 +69,41 @@ void enableRawMode();
 void initEditor();
 int8_t getWindowsSize(uint16_t *x, uint16_t*y);
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
+void editorAppendRow(char* s,size_t len);
 
-
-void editorOpen()
+void editorAppendRow(char* s, size_t len)
 {
-	char* line = "Test Text";
-	ssize_t linelen = 9;
-	E.row.size = linelen;
-	E.row.chars = malloc(linelen + 1);
-	memcpy(E.row.chars,line,linelen);
-	E.row.chars[linelen] = '\0';
-	E.numRows = 1;
+E.row = realloc(E.row,sizeof(erow) * (E.numRows +1));
+int at = E.numRows;
+E.row[at].size = len;
+E.row[at].chars = malloc(len+1);
+memcpy(E.row[at].chars,s,len);
+E.row[at].chars[len] = '\0';
+E.numRows++;
+// E.row->size = len;
+// E.row->chars = malloc(len +1 );
+// memcpy(E.row->chars,s,len);
+// E.row->chars[len] = '\0';
+// E.numRows = 1;
+}
+
+void editorOpen(char* filename)
+{
+    FILE *fp = fopen(filename,"r");
+    if(!fp) die("fopen");
+
+	char* line = NULL;
+    size_t linecap = 0;
+	ssize_t linelen;
+    while( (linelen = getline(&line,&linecap,fp)) != -1){
+        while(linelen > 0 && (line[linelen-1] == '\n' || line[linelen-1] == '\r'))
+        {
+            linelen --;
+        }
+            editorAppendRow(line,linelen);
+            }
+    free(line);
+    fclose(fp);
 }
 
 void editorMoveCursor(int key)
@@ -89,7 +115,7 @@ switch(key)
 		E.cx--;}
 		break;
 	case ARROW_DOWN:
-		if (E.cy != E.screenCols - 1){
+		if (E.cy != E.screenRows - 1){
 		E.cy++;}
 		break;
 	case ARROW_UP:
@@ -97,7 +123,7 @@ switch(key)
 		E.cy--;}
 		break;
 	case ARROW_RIGHT:
-		if (E.cx != E.screenRows - 1){
+		if (E.cx != E.screenCols - 1){
 		E.cx++;}
 		break;
 }
@@ -180,10 +206,10 @@ void die(char *s)
 void editoDrawRows(abuf* ab)
 {
     uint16_t y;
-    for (y = 0; y < E.screenCols; y++)
+    for (y = 0; y < E.screenRows; y++)
     {
 	    if ( y >= E.numRows){
-	    if(y == E.screenRows/3){
+	    if(E.numRows == 0 && y == E.screenRows/3){
  //       write(STDOUT_FILENO, "~", 1);
 	char welcome[80];
 	int welcomelen = snprintf(welcome,sizeof(welcome),"Kilo Editor -- version %s",KILO_VERSION);
@@ -202,9 +228,9 @@ abAppend(ab,welcome,welcomelen);
 	    }
 	}
 	else{
-	int len = E.row.size;
+	int len = E.row[y].size;
 	if(len > E.screenCols) len = E.screenCols;
-	abAppend(ab,E.row.chars,len);
+	abAppend(ab,E.row[y].chars,len);
 		}
 	abAppend(ab,"\x1b[K",3);
 	if(y < E.screenRows - 1 ){
@@ -352,6 +378,7 @@ void initEditor()
 	E.cx = 0;
 	E.cy = 0;
 	E.numRows = 0;
+    E.row = NULL;
     if(getWindowsSize(&E.screenRows,&E.screenCols) == -1) die("init error");
 }
 
@@ -376,11 +403,14 @@ void enableRawMode()
         die("RawModetcsetattr");
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    initEditor();
     enableRawMode();
-    editorOpen();
+    initEditor();
+    if(argc >= 2)
+    {
+        editorOpen(argv[1]);
+    }
     while (1)
     {
         /*
