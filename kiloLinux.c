@@ -28,21 +28,20 @@ int len;
 
 enum editorKey
 {
-ARROW_UP = 'w',
-ARROW_DOWN='s',
-ARROW_RIGHT='d',
-ARROW_LEFT='a'
-}
+	ARROW_LEFT=1000,
+	ARROW_RIGHT,
+	ARROW_UP,
+	ARROW_DOWN
+};
 
 struct editorConfig E;
 
-void editorMoveCursor(char);
+void editorMoveCursor(int);
 void abAppend(abuf* ,const char*, int len);
 void abFree(abuf*);
-char editorReadKey();
+int editorReadKey();
 void editoDrawRows();
 void disableRawMode();
-char editorReadKey();
 void editorProcessKeyprocess();
 void editorRefreshScreen();
 void die(char *s);
@@ -52,7 +51,7 @@ int8_t getWindowsSize(uint16_t *x, uint16_t*y);
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 
 
-void editorMoveCursor(char key)
+void editorMoveCursor(int key)
 {
 switch(key)
 {
@@ -181,7 +180,7 @@ void disableRawMode()
         die("disableRow");
 }
 
-char editorReadKey()
+int editorReadKey()
 {
     int nread;
     char c;
@@ -213,7 +212,7 @@ char editorReadKey()
 
 void editorProcessKeyprocess()
 {
-    char c = editorReadKey();
+    int c = editorReadKey();
 
     switch (c)
     {
