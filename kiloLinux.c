@@ -9,15 +9,25 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <errno.h>
-#include<sys/ioctl.h>
-#include<stdint.h>
-#include<inttypes.h>
-#include<string.h>
+#include <sys/ioctl.h>
+#include <stdint.h>
+#include <inttypes.h>
+#include <string.h>
+#include <sys/types.h>
+
+
+typedef struct erow{
+int size;
+char* chars;
+} erow;
+
 
 struct editorConfig{
 int cx,cy;
 uint16_t screenRows;
 uint16_t screenCols;
+int numRows;
+erow row;
 struct termios orig_termios;
 };
 
@@ -25,6 +35,8 @@ typedef struct abuf{
 char* b;
 int len;
 } abuf;
+
+
 
 enum editorKey
 {
@@ -35,11 +47,13 @@ enum editorKey
 	PAGE_UP,
 	PAGE_DOWN,
 	HOME_KEY,
-	END_KEY
+	END_KEY,
+	DEL_KEY
 };
 
 struct editorConfig E;
 
+void editorOpen();
 void editorMoveCursor(int);
 void abAppend(abuf* ,const char*, int len);
 void abFree(abuf*);
@@ -54,6 +68,17 @@ void initEditor();
 int8_t getWindowsSize(uint16_t *x, uint16_t*y);
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 
+
+void editorOpen()
+{
+	char* line = "Test Text";
+	ssize_t linelen = 9;
+	E.row.size = linelen;
+	E.row.chars = malloc(linelen + 1);
+	memcpy(E.row.chars,line,linelen);
+	E.row.chars[linelen] = '\0';
+	E.numRows = 1;
+}
 
 void editorMoveCursor(int key)
 {
@@ -157,6 +182,7 @@ void editoDrawRows(abuf* ab)
     uint16_t y;
     for (y = 0; y < E.screenCols; y++)
     {
+	    if ( y >= E.numRows){
 	    if(y == E.screenRows/3){
  //       write(STDOUT_FILENO, "~", 1);
 	char welcome[80];
@@ -174,6 +200,12 @@ abAppend(ab,welcome,welcomelen);
 	    else{
 	abAppend(ab,"~",1);
 	    }
+	}
+	else{
+	int len = E.row.size;
+	if(len > E.screenCols) len = E.screenCols;
+	abAppend(ab,E.row.chars,len);
+		}
 	abAppend(ab,"\x1b[K",3);
 	if(y < E.screenRows - 1 ){
 //	write(STDOUT_FILENO,"\r\n",2);
@@ -181,6 +213,7 @@ abAppend(ab,welcome,welcomelen);
 	}
     }
 }
+
 
 void disableRawMode()
 {
@@ -214,6 +247,7 @@ int editorReadKey()
 			 	switch(seq[1])
 				{
 					case '1': return HOME_KEY;
+					case '3': return DEL_KEY;
 					case '4': return END_KEY;
 					case '5': return PAGE_UP;
 					case '6': return PAGE_DOWN;
@@ -317,6 +351,7 @@ void initEditor()
 {
 	E.cx = 0;
 	E.cy = 0;
+	E.numRows = 0;
     if(getWindowsSize(&E.screenRows,&E.screenCols) == -1) die("init error");
 }
 
@@ -345,7 +380,7 @@ int main()
 {
     initEditor();
     enableRawMode();
-
+    editorOpen();
     while (1)
     {
         /*
