@@ -26,6 +26,7 @@ char* chars;
 
 struct editorConfig{
 int cx,cy;
+int rowOff;
 uint16_t screenRows;
 uint16_t screenCols;
 int numRows;
@@ -55,6 +56,7 @@ enum editorKey
 
 struct editorConfig E;
 
+void editorScroll();
 void editorOpen(char*);
 void editorMoveCursor(int);
 void abAppend(abuf* ,const char*, int len);
@@ -70,6 +72,18 @@ void initEditor();
 int8_t getWindowsSize(uint16_t *x, uint16_t*y);
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 void editorAppendRow(char* s,size_t len);
+
+void editorScroll()
+{
+	if(E.cy < E.rowOff)
+	{
+	E.rowOff = E.cy;
+	}
+	if(E.cy >= E.rowOff + E.screenRows)
+	{
+	E.rowOff = E.cy - E.screenRows +1;
+	}
+}
 
 void editorAppendRow(char* s, size_t len)
 {
@@ -115,7 +129,7 @@ switch(key)
 		E.cx--;}
 		break;
 	case ARROW_DOWN:
-		if (E.cy != E.screenRows - 1){
+		if (E.cy < E.numRows){
 		E.cy++;}
 		break;
 	case ARROW_UP:
@@ -207,8 +221,10 @@ void editoDrawRows(abuf* ab)
 {
     uint16_t y;
     for (y = 0; y < E.screenRows; y++)
-    {
-	    if ( y >= E.numRows){
+    { 
+	    int fileRow = y + E.rowOff;
+
+	    if ( fileRow >= E.numRows){
 	    if(E.numRows == 0 && y == E.screenRows/3){
  //       write(STDOUT_FILENO, "~", 1);
 	char welcome[80];
@@ -228,9 +244,9 @@ abAppend(ab,welcome,welcomelen);
 	    }
 	}
 	else{
-	int len = E.row[y].size;
+	int len = E.row[fileRow].size;
 	if(len > E.screenCols) len = E.screenCols;
-	abAppend(ab,E.row[y].chars,len);
+	abAppend(ab,E.row[fileRow].chars,len);
 		}
 	abAppend(ab,"\x1b[K",3);
 	if(y < E.screenRows - 1 ){
@@ -342,6 +358,7 @@ void editorProcessKeyprocess()
 
 void editorRefreshScreen()
 {
+    editorScroll();
     abuf ab = ABUF_INIT;
 
 
@@ -378,7 +395,8 @@ void initEditor()
 	E.cx = 0;
 	E.cy = 0;
 	E.numRows = 0;
-    E.row = NULL;
+	E.rowOff = 0;
+        E.row = NULL;
     if(getWindowsSize(&E.screenRows,&E.screenCols) == -1) die("init error");
 }
 
