@@ -17,7 +17,8 @@
 #include <inttypes.h>
 #include <string.h>
 #include <sys/types.h>
-
+#include <time.h>
+#include <stdarg.h>
 
 typedef struct erow{
 int size;
@@ -37,6 +38,8 @@ uint16_t screenCols;
 int numRows;
 erow *row;
 char* filename;
+char statusmsg[80];
+time_t statusmsg_time;
 struct termios orig_termios;
 };
 
@@ -62,6 +65,7 @@ enum editorKey
 
 struct editorConfig E;
 
+void editorSetStatusMessage(const char*,...);
 void editorDrawStatusBar(abuf*);
 int editorRowCxToRx(erow*,int);
 void editorUpdateRow(erow*);
@@ -82,6 +86,15 @@ int8_t getWindowsSize(uint16_t *x, uint16_t*y);
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 void editorAppendRow(char* s,size_t len);
 
+void editorSetStatusMessage(const char* fmt,...)
+{
+va_list ap;
+va_start(ap,fmt);
+vsnprintf(E.statusmsg,sizeof(E.statusmsg),fmt,ap);
+va_end(ap);
+E.statusmsg_time = time(NULL);
+}
+
 void editorDrawStatusBar(abuf* ab)
 {
 char status[80],rstatus[80];
@@ -91,7 +104,7 @@ int len = snprintf(status,sizeof(status),"%.20s - %d lines",
 		E.filename ? E.filename : "[No Name]",E.numRows
 		);
 int rlen = snprintf(rstatus,sizeof(rstatus),"%d %d",
-		E.cy + 1,E.numRows);
+		E.cy + 1,E.cx +1);
 if (len > E.screenCols) len = E.screenCols;
 abAppend(ab,status,len);
 while (len < E.screenCols)
@@ -523,6 +536,8 @@ void initEditor()
 	E.colOff = 0;
         E.row = NULL;
 	E.filename = NULL;
+	E.statusmsg[0] = '\0';
+	E.statusmsg_time = 0;
     if(getWindowsSize(&E.screenRows,&E.screenCols) == -1) die("init error");
     //for status bar
     E.screenRows -= 1;
@@ -557,6 +572,7 @@ int main(int argc, char* argv[])
     {
         editorOpen(argv[1]);
     }
+    editorSetStatusMessage("Help : Ctrl-q = Quit");
     while (1)
     {
         /*
