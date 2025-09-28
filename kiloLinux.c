@@ -65,6 +65,8 @@ enum editorKey
 
 struct editorConfig E;
 
+void editorInsertChar(int);
+void editorRowInsertChar(erow*,int,int)
 void editorDrawMessageBar(abuf*);
 void editorSetStatusMessage(const char*,...);
 void editorDrawStatusBar(abuf*);
@@ -86,6 +88,26 @@ void initEditor();
 int8_t getWindowsSize(uint16_t *x, uint16_t*y);
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 void editorAppendRow(char* s,size_t len);
+
+void editorInsertChar(int c)
+{
+if(E.cy == E.numRows)
+	{	
+		editorAppendRow("",0);
+	}
+	editorRowInsertChar(&E.row[E.cy],E.cx,c);
+	E.cx++;
+}
+
+void editorRowInsertChar(erow* row, int at, int c)
+{
+if(at <0 || at > row->size) at=row->size;
+row->chars = realloc(row->chars,row->size+2);
+memmove(&row->chars[at+1],&row->chars[at],row->size - at +1);
+row->size++;
+row->chars[at] = c;
+editorUpdateRow(row);
+}
 
 void editorDrawMessageBar(abuf* ab)
 {
