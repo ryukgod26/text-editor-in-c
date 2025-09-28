@@ -36,6 +36,7 @@ uint16_t screenRows;
 uint16_t screenCols;
 int numRows;
 erow *row;
+char* filename;
 struct termios orig_termios;
 };
 
@@ -61,6 +62,7 @@ enum editorKey
 
 struct editorConfig E;
 
+void editorDrawStatusBar(abuf*);
 int editorRowCxToRx(erow*,int);
 void editorUpdateRow(erow*);
 void editorScroll();
@@ -79,6 +81,33 @@ void initEditor();
 int8_t getWindowsSize(uint16_t *x, uint16_t*y);
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 void editorAppendRow(char* s,size_t len);
+
+void editorDrawStatusBar(abuf* ab)
+{
+char status[80],rstatus[80];
+//Changing to Inverted Colors
+abAppend(ab,"\x1b[7m",4);
+int len = snprintf(status,sizeof(status),"%.20s - %d lines",
+		E.filename ? E.filename : "[No Name]",E.numRows
+		);
+int rlen = snprintf(rstatus,sizeof(rstatus),"%d %d",
+		E.cy + 1,E.numRows);
+if (len > E.screenCols) len = E.screenCols;
+abAppend(ab,status,len);
+while (len < E.screenCols)
+	{
+		if(E.screenCols - len == rlen){
+		abAppend(ab,rstatus,rlen);
+		break;
+		}
+		else{
+		abAppend(ab," ",1);
+		len++;
+		}
+	}
+//Changing to Normal Mode
+abAppend(ab,"\x1b[m",3);
+}
 
 int editorRowCxToRx(erow* row,int cx)
 {
@@ -166,7 +195,8 @@ void editorOpen(char* filename)
 {
     FILE *fp = fopen(filename,"r");
     if(!fp) die("fopen");
-
+	free(E.filename);
+	E.filename = strdup(filename);
 	char* line = NULL;
     size_t linecap = 0;
 	ssize_t linelen;
@@ -330,10 +360,10 @@ abAppend(ab,welcome,welcomelen);
 	abAppend(ab,&E.row[fileRow].render[E.colOff],len);
 		}
 	abAppend(ab,"\x1b[K",3);
-	if(y < E.screenRows - 1 ){
+//	if(y < E.screenRows - 1 ){
 //	write(STDOUT_FILENO,"\r\n",2);
 	abAppend(ab,"\r\n",2);
-	}
+//	}
     }
 }
 
@@ -465,6 +495,7 @@ void editorRefreshScreen()
   abAppend(&ab,"\x1b[H",3);
 
     editoDrawRows(&ab);
+    editorDrawStatusBar(&ab);
 
     char buf[32];
     snprintf(buf,sizeof(buf),"\x1b[%d;%dH",(E.cy - E.rowOff) +1,(E.rx - E.colOff)+1);
@@ -491,7 +522,10 @@ void initEditor()
 	E.rowOff = 0;
 	E.colOff = 0;
         E.row = NULL;
+	E.filename = NULL;
     if(getWindowsSize(&E.screenRows,&E.screenCols) == -1) die("init error");
+    //for status bar
+    E.screenRows -= 1;
 }
 
 void enableRawMode()
