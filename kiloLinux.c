@@ -65,6 +65,7 @@ enum editorKey
 
 struct editorConfig E;
 
+void editorDrawMessageBar(abuf*);
 void editorSetStatusMessage(const char*,...);
 void editorDrawStatusBar(abuf*);
 int editorRowCxToRx(erow*,int);
@@ -85,6 +86,16 @@ void initEditor();
 int8_t getWindowsSize(uint16_t *x, uint16_t*y);
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 void editorAppendRow(char* s,size_t len);
+
+void editorDrawMessageBar(abuf* ab)
+{
+abAppend(ab,"\x1b[K",3);
+int msglen = strlen(E.statusmsg);
+if(msglen > E.screenCols) msglen = E.screenCols;
+if(msglen && time(NULL) - E.statusmsg_time < 5)
+	abAppend(ab,E.statusmsg,msglen);
+
+}
 
 void editorSetStatusMessage(const char* fmt,...)
 {
@@ -120,6 +131,7 @@ while (len < E.screenCols)
 	}
 //Changing to Normal Mode
 abAppend(ab,"\x1b[m",3);
+abAppend(ab,"\r\n",2);
 }
 
 int editorRowCxToRx(erow* row,int cx)
@@ -509,6 +521,7 @@ void editorRefreshScreen()
 
     editoDrawRows(&ab);
     editorDrawStatusBar(&ab);
+    editorDrawMessageBar(&ab);
 
     char buf[32];
     snprintf(buf,sizeof(buf),"\x1b[%d;%dH",(E.cy - E.rowOff) +1,(E.rx - E.colOff)+1);
@@ -540,7 +553,7 @@ void initEditor()
 	E.statusmsg_time = 0;
     if(getWindowsSize(&E.screenRows,&E.screenCols) == -1) die("init error");
     //for status bar
-    E.screenRows -= 1;
+    E.screenRows -= 2;
 }
 
 void enableRawMode()
