@@ -3,7 +3,7 @@
 #define _GNU_SOURCE
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define ABUF_INIT {NULL,0}
-#define KILO_VERSION "1.0.2"
+#define KILO_VERSION "1.0.1"
 #define TAB_STOP 8
 #define KILO_QUIT_TIMES 3
 
