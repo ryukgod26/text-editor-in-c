@@ -66,7 +66,7 @@ enum editorKey
 struct editorConfig E;
 
 void editorInsertChar(int);
-void editorRowInsertChar(erow*,int,int)
+void editorRowInsertChar(erow*,int,int);
 void editorDrawMessageBar(abuf*);
 void editorSetStatusMessage(const char*,...);
 void editorDrawStatusBar(abuf*);
