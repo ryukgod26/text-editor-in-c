@@ -812,7 +812,7 @@ int main(int argc, char* argv[])
     {
         editorOpen(argv[1]);
     }
-    editorSetStatusMessage("Help : Ctrl-q = Quit");
+    editorSetStatusMessage("Help : Ctrl-q = Quit Ctrl-S = Save");
     while (1)
     {
         /*
