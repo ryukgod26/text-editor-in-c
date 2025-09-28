@@ -3,8 +3,9 @@
 #define _GNU_SOURCE
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define ABUF_INIT {NULL,0}
-#define KILO_VERSION "0.0.1"
+#define KILO_VERSION "1.0.2"
 #define TAB_STOP 8
+#define KILO_QUIT_TIMES 3
 
 #include <termios.h>
 #include <unistd.h>
@@ -39,6 +40,7 @@ uint16_t screenCols;
 int numRows;
 erow *row;
 char* filename;
+int dirty;
 char statusmsg[80];
 time_t statusmsg_time;
 struct termios orig_termios;
@@ -67,6 +69,11 @@ enum editorKey
 
 struct editorConfig E;
 
+void editorRowAppendString(erow*,char*,size_t);
+void editorFreeRow(erow*);
+void editorDelRow(int);
+void editorDelChar();
+void editorRowDelChar(erow*,int);
 void editorSave();
 char* editorRowsToString(int*);
 void editorInsertChar(int);
@@ -93,6 +100,60 @@ int8_t getWindowsSize(uint16_t *x, uint16_t*y);
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 void editorAppendRow(char* s,size_t len);
 
+void editorRowAppendString(erow* row,char* s, size_t len)
+{
+row->chars = realloc(row->chars,row->size + len + 1);
+memcpy(&row->chars[row->size],s,len);
+row->size += len;
+row->chars[row->size] = '\0';
+editorUpdateRow(row);
+E.dirty++;
+}
+
+void editorDelRow(int at)
+{
+if(at < 0 || at >= E.numRows) return;
+editorFreeRow(&E.row[at]);
+memove(&E.row[at],&E.row[at+1],sizeof(erow) * (E.numRows - at - 1));
+E.numRows --;
+E.dirty ++;
+}
+
+void editorFreeRow(erow* row)
+{
+free(row->chars);
+free(row->render);
+}
+
+void editorDelChar()
+{
+if(E.cy == E.numRows) return;
+if(E.cx == 0 && E.cy == 0) return;
+
+erow* row = &E.row[E.cy];
+if(E.cx > 0)
+	{
+		editorRowDelChar(row,E.cx-1);
+		E.cx--;
+	}
+else
+	{
+		E.cx = E.row[E.cy -1].size;
+		editorRowAppendString(&E.row[E.cy -1 ],row->chars,row->size);
+		editorDelRow(E.cy);
+		E.cy--;
+	}
+}
+
+void editorRowDelChar(erow* row,int at)
+{
+if(at < 0 || at > row->size) return;
+memmove(&row->chars[at],&row->chars[at+1],row->size-at);
+row->size--;
+editorUpdateRow(row);
+E.dirty++;
+}
+
 void editorSave()
 {
 if (E.filename == NULL) return;
@@ -101,16 +162,28 @@ int len;
 char* buf = editorRowsToString(&len);
 
 int fd = open(E.filename,O_RDWR | O_CREAT ,0644);
-ftruncate(fd,len);
-write(fd,buf,len);
-close(fd);
-free(buf);
+if(fd != -1){
+	if(ftruncate(fd,len) != -1){
+		if(write(fd,buf,len) == len){
+			close(fd);
+			free(buf);
+			E.dirty = 0;
+			editorSetStatusMessage("%d bytes Written to the Disk.",len);
+			return;
+		}
+	}
+	close(fd);
 }
 
-char* editorRowsToString(int* buflen){
+free(buf);
+editorSetStatusMessage("Cannot Save I/O Error: %s",strerror(errno));
+}
+
+char* editorRowsToString(int* buflen)
+{
 int totalen = 0;
 int j;
-for(j=0;j<E.numRows;j++){
+for(j=0;j<E.numRows;j++)
 	totalen += E.row[j].size +1;
 *buflen = totalen;
 
@@ -144,6 +217,7 @@ memmove(&row->chars[at+1],&row->chars[at],row->size - at +1);
 row->size++;
 row->chars[at] = c;
 editorUpdateRow(row);
+E.dirty++;
 }
 
 void editorDrawMessageBar(abuf* ab)
@@ -170,8 +244,9 @@ void editorDrawStatusBar(abuf* ab)
 char status[80],rstatus[80];
 //Changing to Inverted Colors
 abAppend(ab,"\x1b[7m",4);
-int len = snprintf(status,sizeof(status),"%.20s - %d lines",
-		E.filename ? E.filename : "[No Name]",E.numRows
+int len = snprintf(status,sizeof(status),"%.20s - %d lines %s",
+		E.filename ? E.filename : "[No Name]",E.numRows,
+		E.dirty ? "(modifies)" : ""
 		);
 int rlen = snprintf(rstatus,sizeof(rstatus),"%d %d",
 		E.cy + 1,E.cx +1);
@@ -268,6 +343,7 @@ E.row[at].rsize = 0;
 E.row[at].render = NULL;
 editorUpdateRow(&E.row[at]);
 E.numRows++;
+E.dirty++;
 // E.row->size = len;
 // E.row->chars = malloc(len +1 );
 // memcpy(E.row->chars,s,len);
@@ -293,6 +369,7 @@ void editorOpen(char* filename)
             }
     free(line);
     fclose(fp);
+	E.dirty = 0;
 }
 
 void editorMoveCursor(int key)
@@ -519,6 +596,7 @@ int editorReadKey()
 
 void editorProcessKeyprocess()
 {
+	static int quit_times = KILO_QUIT_TIMES;
     int c = editorReadKey();
 
     switch (c)
@@ -527,10 +605,15 @@ void editorProcessKeyprocess()
 	//TODO
 	break;
     case CTRL_KEY('q'):
+		if(E.dirty && quit_times > 0){
+			editorSetStatusMessage("Warning!!! File has Unsaved Changes. Press Ctrl-Q %d more times to Quit Without Saving." , quit_times);
+			quit_times--;
+			return;
+		}
         write(STDOUT_FILENO, "\x1b[2J", 4);
         write(STDOUT_FILENO, "\x1b[H", 3);
-	exit(EXIT_SUCCESS);
-	break;
+		exit(EXIT_SUCCESS);
+		break;
     case CTRL_KEY('s'):
 	editorSave();
 	break;
@@ -544,8 +627,9 @@ void editorProcessKeyprocess()
     case BACKSPACE:
     case CTRL_KEY('h'):
     case DEL_KEY:
-	/*TODO*/
-	break;
+		if(c == DEL_KEY) editorMoveCursor(ARROW_RIGHT);
+		editorDelChar();
+		break;
     case PAGE_UP:
     case PAGE_DOWN:
 	{
@@ -577,6 +661,7 @@ void editorProcessKeyprocess()
 	editorInsertChar(c);
 	break;
     }
+	quit_times = KILO_QUIT_TIMES;
 }
 
 void editorRefreshScreen()
