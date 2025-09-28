@@ -450,22 +450,199 @@ gdb ./kilo_debug
 *   **Terminal Escape:** Malicious files with embedded escape sequences are rendered safely
 *   **Memory Limits:** Large files may exhaust system memory
 
-## Roadmap
+## Development Roadmap
 
-*   **Syntax Highlighting:** Implement syntax highlighting for various programming languages.
-*   **Search and Replace:** Add advanced search and replace functionality with regular expression support.
-*   **Undo/Redo:** Implement undo and redo functionality for editing operations.
-*   **Multi-File Support:** Allow opening and editing multiple files simultaneously.
-*   **Plugin Support:** Add support for plugins to extend the editor's functionality.
+### 🚀 Current Version (1.0.1)
+*   ✅ Basic text editing functionality
+*   ✅ File loading and saving operations  
+*   ✅ Cursor navigation and scrolling
+*   ✅ Status bar and message system
+*   ✅ Unsaved changes protection
+*   ✅ Tab rendering and line handling
 
-## Contributing Guidelines
+### 🎯 Planned Features
 
-Contributions are welcome! Please follow these guidelines:
+#### Version 1.1 - Search & Navigation
+*   🔍 **Find Function:** Text search with highlighting
+*   🔄 **Find & Replace:** Pattern replacement with confirmation
+*   🎯 **Go to Line:** Jump to specific line numbers
+*   📖 **Search History:** Remember recent search terms
 
-1.  Fork the repository.
-2.  Create a new branch for your feature or bug fix.
-3.  Make your changes and commit them with clear, concise messages.
-4.  Submit a pull request with a detailed description of your changes.
+#### Version 1.2 - Advanced Editing  
+*   ↩️ **Undo/Redo System:** Multi-level operation history
+*   📋 **Copy/Paste:** Clipboard operations with multiple buffers
+*   🔢 **Line Numbers:** Optional line number display
+*   📏 **Word Wrap:** Soft wrapping for long lines
 
-## License Information
+#### Version 1.3 - Developer Features
+*   🎨 **Syntax Highlighting:** Language-specific code coloring
+*   🔧 **Configuration File:** User-customizable settings
+*   🌙 **Multiple Color Schemes:** Dark/light mode support  
+*   📑 **Multiple Files:** Tab-based multi-file editing
+
+#### Version 2.0 - Extended Functionality
+*   🔌 **Plugin System:** Extensible architecture for add-ons  
+*   📊 **File Browser:** Integrated directory navigation
+*   🔍 **Regex Support:** Advanced pattern matching
+*   🌐 **UTF-8 Support:** Full Unicode character handling
+
+### 🎭 Experimental Features
+*   📱 **Mouse Support:** Click-to-position cursor
+*   🖥️ **Split View:** Horizontal/vertical pane splitting
+*   📈 **Performance Monitor:** Real-time memory/CPU usage
+*   🔄 **Auto-save:** Background file persistence
+
+## Contributing
+
+### 🤝 How to Contribute
+
+We welcome contributions from developers of all skill levels! Here are ways to get involved:
+
+#### 🐛 Bug Reports
+1. Check existing issues on GitHub
+2. Provide minimal reproduction steps
+3. Include system information (OS, terminal, compiler)
+4. Attach relevant files if possible
+
+#### 💡 Feature Requests
+1. Search existing feature requests first
+2. Describe the use case and expected behavior  
+3. Consider implementation complexity
+4. Propose API changes if needed
+
+#### 🔧 Code Contributions
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature-name`
+3. **Follow** coding standards (see below)
+4. **Test** your changes thoroughly
+5. **Commit** with clear messages: `git commit -m "Add feature: description"`
+6. **Submit** a pull request with detailed description
+
+### 📋 Development Guidelines
+
+#### Code Style
+```c
+// Function names: camelCase
+void editorInsertChar(int c);
+
+// Variable names: camelCase
+int currentRow = 0;
+
+// Constants: UPPER_SNAKE_CASE
+#define MAX_BUFFER_SIZE 1024
+
+// Struct names: camelCase  
+struct editorConfig {
+    int cursorX;
+    int cursorY;
+};
+```
+
+#### Testing Checklist
+- [ ] Compiles without warnings (`-Wall -Wextra`)
+- [ ] Handles empty files correctly
+- [ ] Manages memory properly (no leaks)
+- [ ] Works with various terminal sizes
+- [ ] Preserves file permissions
+- [ ] Handles keyboard interrupts gracefully
+
+#### Documentation Requirements
+*   Comment all public functions with purpose and parameters
+*   Update README.md for new features
+*   Include usage examples for complex features
+*   Maintain changelog for version history
+
+### 🏗️ Development Setup
+
+```bash
+# Clone repository
+git clone https://github.com/ryukgod26/text-editor-in-c.git
+cd text-editor-in-c
+
+# Create development build
+make debug
+
+# Run with debugging symbols
+gdb ./kilo
+
+# Run static analysis
+make lint
+
+# Run tests
+make test
+```
+
+## License & Credits
+
+### 📜 License Information
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+```
+MIT License
+
+Copyright (c) 2024 ryukgod26
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+```
+
+### 🙏 Acknowledgments
+
+*   **Build Your Own Text Editor Tutorial** - Original inspiration and guidance
+*   **VT100 Terminal Specification** - ANSI escape sequence reference  
+*   **POSIX Standards** - Terminal interface specifications
+*   **GNU C Library Documentation** - System call references
+*   **Open Source Community** - Continuous feedback and improvements
+
+### 🔗 Related Projects
+
+*   **[Nano](https://www.nano-editor.org/)** - Another minimal terminal editor
+*   **[Vim](https://www.vim.org/)** - Advanced modal text editor  
+*   **[Emacs](https://www.gnu.org/software/emacs/)** - Extensible text editor
+*   **[Micro](https://micro-editor.github.io/)** - Modern terminal editor
+
+---
+
+## Quick Reference Card
+
+### ⌨️ Essential Shortcuts
+| Key Combination | Action |
+|-----------------|--------|
+| `Ctrl+Q` | Quit (warns if unsaved) |
+| `Ctrl+S` | Save file |
+| `Arrow Keys` | Move cursor |
+| `Page Up/Down` | Scroll by screen |
+| `Home/End` | Line beginning/end |
+| `Enter` | New line |
+| `Backspace` | Delete left |
+| `Delete` | Delete right |
+
+### 🚀 Quick Start Commands
+```bash
+# Compile
+make
+
+# Edit existing file  
+./kilo myfile.txt
+
+# Create new file
+./kilo
+
+# Help
+./kilo --help
+```
+
+---
+
+**Happy Editing!** 🎉
+
+*For support, feature requests, or bug reports, please visit our [GitHub repository](https://github.com/ryukgod26/text-editor-in-c).*
 
