@@ -69,6 +69,7 @@ enum editorKey
 
 struct editorConfig E;
 
+void editorInsertNewLine();
 void editorRowAppendString(erow*,char*,size_t);
 void editorFreeRow(erow*);
 void editorDelRow(int);
@@ -98,7 +99,26 @@ void enableRawMode();
 void initEditor();
 int8_t getWindowsSize(uint16_t *x, uint16_t*y);
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
-void editorAppendRow(char* s,size_t len);
+// void editorAppendRow(char* s,size_t len);
+void editorInsertRow(int, char*,size_t);
+
+
+
+void editorInsertNewLine()
+{
+if(E.cx == 0){
+	editorInsertRow(E.cy,"",0);
+}else{
+	erow* row = &E.row[E.cy];
+	editorInsertRow(E.cy+1,&row->chars[E.cx],row->size - E.cx);
+	row = &E.row[E.cy];
+	row->size = E.cx;
+	row->chars[row->size] = '\0';
+	editorUpdateRow(row);
+}
+E.cy++;
+E.cx = 0;
+}
 
 void editorRowAppendString(erow* row,char* s, size_t len)
 {
@@ -114,7 +134,7 @@ void editorDelRow(int at)
 {
 if(at < 0 || at >= E.numRows) return;
 editorFreeRow(&E.row[at]);
-memove(&E.row[at],&E.row[at+1],sizeof(erow) * (E.numRows - at - 1));
+memmove(&E.row[at],&E.row[at+1],sizeof(erow) * (E.numRows - at - 1));
 E.numRows --;
 E.dirty ++;
 }
@@ -203,7 +223,7 @@ void editorInsertChar(int c)
 {
 if(E.cy == E.numRows)
 	{	
-		editorAppendRow("",0);
+		editorInsertRow(E.numRows,"",0);
 	}
 	editorRowInsertChar(&E.row[E.cy],E.cx,c);
 	E.cx++;
@@ -331,10 +351,13 @@ void editorScroll()
 	}
 }
 
-void editorAppendRow(char* s, size_t len)
+void editorInsertRow(int at,char* s, size_t len)
 {
+if(at < 0 || at > E.numRows) return;
+
 E.row = realloc(E.row,sizeof(erow) * (E.numRows +1));
-int at = E.numRows;
+memmove(&E.row[at+1],&E.row[at],sizeof(erow) * (E.numRows - at));
+// int at = E.numRows;
 E.row[at].size = len;
 E.row[at].chars = malloc(len+1);
 memcpy(E.row[at].chars,s,len);
@@ -365,7 +388,7 @@ void editorOpen(char* filename)
         {
             linelen --;
         }
-            editorAppendRow(line,linelen);
+            editorInsertRow(E.numRows,line,linelen);
             }
     free(line);
     fclose(fp);
@@ -602,8 +625,8 @@ void editorProcessKeyprocess()
     switch (c)
     {
     case '\r':
-	//TODO
-	break;
+		editorInsertNewLine();
+		break;
     case CTRL_KEY('q'):
 		if(E.dirty && quit_times > 0){
 			editorSetStatusMessage("Warning!!! File has Unsaved Changes. Press Ctrl-Q %d more times to Quit Without Saving." , quit_times);
