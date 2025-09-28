@@ -69,6 +69,7 @@ enum editorKey
 
 struct editorConfig E;
 
+char* editorPrompt(char*);
 void editorInsertNewLine();
 void editorRowAppendString(erow*,char*,size_t);
 void editorFreeRow(erow*);
@@ -103,6 +104,42 @@ int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 void editorInsertRow(int, char*,size_t);
 
 
+char* editorPrompt(char* prompt)
+{
+size_t bufSize = 128;
+char* buf = malloc(bufSize);
+size_t buflen = 0;
+buf[bufSize] = '\0';
+
+while(1){
+	editorSetStatusMessage(prompt,buf);
+	editorRefreshScreen();
+
+	int c = editorReadKey();
+	if(c == DEL_KEY || c == BACKSPACE || c == CTRL_KEY('h')){
+		if(buflen != 0) buf[--buflen] = '\0';
+	}
+	else if(c == '\x1b'){
+		editorSetStatusMessage("");
+		free(buf);
+		return NULL;
+	}
+	else if(c == '\r'){
+		if( buflen != 0){
+			editorSetStatusMessage("");
+			return buf;
+		}
+	}else if(!iscntrl(c)  && c < 128){
+		if ( buflen == bufSize -1){
+			bufSize *= 2;
+			buf = realloc(buf,bufSize);
+		}
+		buf[buflen++] = c;
+		buf[buflen] = '\0';
+	}
+}
+
+}
 
 void editorInsertNewLine()
 {
@@ -176,7 +213,13 @@ E.dirty++;
 
 void editorSave()
 {
-if (E.filename == NULL) return;
+if (E.filename == NULL){
+	E.filename = editorPrompt("Save as: %s [ESC to Cancel]");
+	if(E.filename == NULL){
+		editorSetStatusMessage("Save Aborted");
+		return;
+	}
+}
 
 int len;
 char* buf = editorRowsToString(&len);
