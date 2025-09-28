@@ -19,6 +19,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <stdarg.h>
+#include <fcntl.h>
 
 typedef struct erow{
 int size;
@@ -52,6 +53,7 @@ int len;
 
 enum editorKey
 {
+	BACKSPACE=127,
 	ARROW_LEFT=1000,
 	ARROW_RIGHT,
 	ARROW_UP,
@@ -65,6 +67,8 @@ enum editorKey
 
 struct editorConfig E;
 
+void editorSave();
+char* editorRowsToString(int*);
 void editorInsertChar(int);
 void editorRowInsertChar(erow*,int,int);
 void editorDrawMessageBar(abuf*);
@@ -88,6 +92,39 @@ void initEditor();
 int8_t getWindowsSize(uint16_t *x, uint16_t*y);
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 void editorAppendRow(char* s,size_t len);
+
+void editorSave()
+{
+if (E.filename == NULL) return;
+
+int len;
+char* buf = editorRowsToString(&len);
+
+int fd = open(E.filename,O_RDWR | O_CREAT ,0644);
+ftruncate(fd,len);
+write(fd,buf,len);
+close(fd);
+free(buf);
+}
+
+char* editorRowsToString(int* buflen){
+int totalen = 0;
+int j;
+for(j=0;j<E.numRows;j++){
+	totalen += E.row[j].size +1;
+*buflen = totalen;
+
+char* buf = malloc(totalen);
+char* p = buf;
+for(j=0; j<E.numRows; j++){
+memcpy(p,E.row[j].chars,E.row[j].size);
+p += E.row[j].size;
+*p='\n';
+p++;
+}
+
+return buf;
+}
 
 void editorInsertChar(int c)
 {
@@ -486,10 +523,16 @@ void editorProcessKeyprocess()
 
     switch (c)
     {
+    case '\r':
+	//TODO
+	break;
     case CTRL_KEY('q'):
         write(STDOUT_FILENO, "\x1b[2J", 4);
         write(STDOUT_FILENO, "\x1b[H", 3);
 	exit(EXIT_SUCCESS);
+	break;
+    case CTRL_KEY('s'):
+	editorSave();
 	break;
     case HOME_KEY:
 	E.cx = 0;
@@ -497,6 +540,11 @@ void editorProcessKeyprocess()
     case END_KEY:
 	if(E.cy < E.numRows)
 		E.cx = E.row[E.cy].size;
+	break;
+    case BACKSPACE:
+    case CTRL_KEY('h'):
+    case DEL_KEY:
+	/*TODO*/
 	break;
     case PAGE_UP:
     case PAGE_DOWN:
@@ -521,6 +569,12 @@ void editorProcessKeyprocess()
     case ARROW_DOWN:
     case ARROW_RIGHT:
 	editorMoveCursor(c);
+	break;
+    case CTRL_KEY('l'):
+    case '\x1b':
+	break;
+    default:
+	editorInsertChar(c);
 	break;
     }
 }
