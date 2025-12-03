@@ -69,6 +69,8 @@ enum editorKey
 
 struct editorConfig E;
 
+int editorRowRxToCx(erow *row, int rx);
+void editorFind();
 char* editorPrompt(char*);
 void editorInsertNewLine();
 void editorRowAppendString(erow*,char*,size_t);
@@ -103,6 +105,34 @@ int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 // void editorAppendRow(char* s,size_t len);
 void editorInsertRow(int, char*,size_t);
 
+int editorRowRxToCx(erow *row, int rx) {
+	int cur_rx = 0;
+	for(int cx = 0; cx < row->size, cx++){
+		if (row->chars[cx] == '\t'){
+			cur_rx += (KILO_TAB_STOP -1) - (cur_rx % KILO_TAB_STOP);
+		}
+		cur_rx++;
+		if(cur_rx > rx) return cx;
+	} 
+	return cx;
+}
+
+void editorFind(){
+	char* query = editorPrompt("Find [Esc to Cancel]: %s");
+	if (query == NULL) return;
+
+	for(int i = 0; i < E.numRows; i++){
+		erow* row = &E.row[i];
+		char* match = strstr(row->render, query);
+		if (match){
+			E.cy = i;
+			E.cx = match - row->render;
+			E.rowoff = E.numRows;
+			break;
+		}
+	}
+	free(query);
+}
 
 char* editorPrompt(char* prompt)
 {

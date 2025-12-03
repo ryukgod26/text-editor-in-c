@@ -28,7 +28,6 @@ void enableRawMode() {
     if(GetConsoleMode(global_hIn, &mode) == -1) die('Error On Enable Raw Mode Get Console Mode ');
     atexit(disableRawMode);
     
-    
 
     //To Turn Off ECHO and Special Inputs
     // mode &= ~(ENAB )
