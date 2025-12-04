@@ -55,7 +55,9 @@ int len;
 enum editorHighlight{
 	HL_NORMAL = 0,
 	HL_NUMBER,
-	COMMENT,
+	HL_MATCH,
+	HL_SELECTED_MATCH,
+	HL_COMMENT,
 };
 
 enum editorKey
@@ -116,6 +118,7 @@ void editorInsertRow(int, char*,size_t);
 int editorSyntaxToColor(int hl){
 	switch(hl){
 		case HL_NUMBER: return 31;
+		case HL_MATCH: return 34;
 		default: return 37;
 	}
 }
@@ -134,6 +137,14 @@ void editorUpdateSyntax(erow* row){
 void editorFindCallback(char* query, int key){
 	static int lastMatch = -1;
 	static int direction = 1;
+	static int saved_hl_line;
+	static char *saved_hl = NULL;
+
+	if(saved_hl){
+		memcpy(E.row[saved_hl_line].hl, saved_hl, E.row[saved_hl_line].rsize);
+		free(saved_hl);
+		saved_hl = NULL;
+	}
 	if (key == '\r' || key == '\x1b'){
 		lastMatch = -1;
 		direction = 1;
@@ -162,6 +173,11 @@ void editorFindCallback(char* query, int key){
 			E.cy = i;
 			E.cx = editorRowCxToRx(row, match - row->render);
 			E.rowOff = E.numRows;
+
+			saved_hl_line = current;
+			saved_hl = malloc(row->rsize);
+			memcpy(saved_hl, row->hl, row->rsize);
+			memset(&row->hl[match- row.render],HL_MATCH, strlen(query));
 			break;
 		}
 	}
