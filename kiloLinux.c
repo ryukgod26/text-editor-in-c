@@ -30,7 +30,6 @@ char* render;
 unsigned char *hl;
 } erow;
 
-
 struct editorConfig{
 int cx,cy;
 int rx;
@@ -136,8 +135,8 @@ void editorUpdateSyntax(erow* row){
 	int i = 0;
 	while(i < row->rsize) {
 		char c = row->render[i];
-		unsigned char prev_hl = (i > 0} ? row->hl[i-1] : HL_NORMAL;
-		if (isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)){
+		unsigned char prev_hl = (i > 0) ? row->hl[i-1] : HL_NORMAL;
+		if ((isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)) || (c == '.' && prev_hl == HL_NUMBER)){
 			row->hl[i] = HL_NUMBER;
 			prev_sep = 0;
 			i++;
