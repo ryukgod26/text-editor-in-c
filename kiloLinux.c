@@ -27,6 +27,7 @@ int size;
 int rsize;
 char* chars;
 char* render;
+unsigned char *hl;
 } erow;
 
 
@@ -51,7 +52,11 @@ char* b;
 int len;
 } abuf;
 
-
+enum editorHighlight{
+	HL_NORMAL = 0,
+	HL_NUMBER,
+	COMMENT,
+};
 
 enum editorKey
 {
@@ -69,6 +74,8 @@ enum editorKey
 
 struct editorConfig E;
 
+int editorSyntaxToColor(int);
+void editorUpdateSyntax(erow*);
 void editorFindCallback(char*, int);
 int editorRowRxToCx(erow *row, int rx);
 void editorFind();
@@ -105,6 +112,24 @@ int8_t getWindowsSize(uint16_t *x, uint16_t*y);
 int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 // void editorAppendRow(char* s,size_t len);
 void editorInsertRow(int, char*,size_t);
+
+int editorSyntaxToColor(int hl){
+	switch(hl){
+		case HL_NUMBER: return 31;
+		default: return 37;
+	}
+}
+
+void editorUpdateSyntax(erow* row){
+	row->hl = realloc(row->hl, row->rsize);
+	memset(row->hl, HL_NORMAL, row->rsize);
+	
+	for(int i = 0; i < row->rsize; i++) {
+		if (isdigit(row->render[i])){
+		row->hl[i] = HL_NUMBER;
+		}
+	}
+}
 
 void editorFindCallback(char* query, int key){
 	static int lastMatch = -1;
@@ -251,6 +276,7 @@ void editorFreeRow(erow* row)
 {
 free(row->chars);
 free(row->render);
+free(row->hl);
 }
 
 void editorDelChar()
@@ -281,7 +307,6 @@ row->size--;
 editorUpdateRow(row);
 E.dirty++;
 }
-
 void editorSave()
 {
 if (E.filename == NULL){
@@ -438,6 +463,7 @@ for(j=0;j < row->size;j++)
 	}
 row->render[idx] = '\0';
 row->rsize = idx;
+editorUpdateSyntax(row);
 }
 
 void editorScroll()
@@ -478,6 +504,7 @@ memcpy(E.row[at].chars,s,len);
 E.row[at].chars[len] = '\0';
 E.row[at].rsize = 0;
 E.row[at].render = NULL;
+E.row[at].hl = NULL;
 editorUpdateRow(&E.row[at]);
 E.numRows++;
 E.dirty++;
@@ -655,6 +682,21 @@ abAppend(ab,welcome,welcomelen);
 	int len = E.row[fileRow].rsize - E.colOff;
 	if(len <0) len = 0;
 	if(len > E.screenCols) len = E.screenCols;
+	char* c = &E.row[fileRow].render[E.colOff];
+	unsigned char *hl = &E.row[fileRow].hl[colOff];
+	int j;
+	for(j = 0; j<len;j++){
+		if (hl[j] == HL_NORMAL){
+			abAppend(ab,"\x1b[39m",5);
+			abAppend(ab, &c[j],1);
+		} else{
+			int color = editorSyntaxToColor(hl[j]);
+			char buf[16];
+			int clen = snprintf(buf, sizeof(buf), "\x1b[%dm",color);
+			abAppend(ab, buf, clen);
+			abAppend(ab, &c[j], 1);
+		}
+	}
 	abAppend(ab,&E.row[fileRow].render[E.colOff],len);
 		}
 	abAppend(ab,"\x1b[K",3);
