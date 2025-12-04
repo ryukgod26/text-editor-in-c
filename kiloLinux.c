@@ -69,9 +69,10 @@ enum editorKey
 
 struct editorConfig E;
 
+void editorFindCallback(char*, int);
 int editorRowRxToCx(erow *row, int rx);
 void editorFind();
-char* editorPrompt(char*);
+char* editorPrompt(char* ,void (*callback) (char *, int));
 void editorInsertNewLine();
 void editorRowAppendString(erow*,char*,size_t);
 void editorFreeRow(erow*);
@@ -105,11 +106,48 @@ int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 // void editorAppendRow(char* s,size_t len);
 void editorInsertRow(int, char*,size_t);
 
+void editorFindCallback(char* query, int key){
+	static int lastMatch = -1;
+	static int direction = 1;
+	if (key == '\r' || key == '\x1b'){
+		lastMatch = -1;
+		direction = 1;
+		return;
+	} else if (key == ARROW_RIGHT || key == ARROW_DOWN){
+		direction = 1;
+	}else if (key == ARROW_LEFT || key == ARROW_UP){
+		direction = -1;
+	} else{
+		lastMatch = -1;
+		direction = 1;
+	}
+
+	if (lastMatch == -1) direction = 1;
+	int current = lastMatch;
+
+	for(int i = 0; i < E.numRows; i++){
+		current += direction;
+		if (current == -1) current = E.numRows - 1;
+		else if (current == E.numRows) current = 0;
+		erow* row = &E.row[current];
+		char* match = strstr(row->render, query);
+		if (match){
+			lastMatch = current;
+			E.cy = current;
+			E.cy = i;
+			E.cx = editorRowCxToRx(row, match - row->render);
+			E.rowOff = E.numRows;
+			break;
+		}
+	}
+}
+
 int editorRowRxToCx(erow *row, int rx) {
 	int cur_rx = 0;
-	for(int cx = 0; cx < row->size, cx++){
+	int cx;
+	for(cx = 0; cx < row->size; cx++){
 		if (row->chars[cx] == '\t'){
-			cur_rx += (KILO_TAB_STOP -1) - (cur_rx % KILO_TAB_STOP);
+			cur_rx += (TAB_STOP -1) - (cur_rx % TAB_STOP);
 		}
 		cur_rx++;
 		if(cur_rx > rx) return cx;
@@ -118,23 +156,23 @@ int editorRowRxToCx(erow *row, int rx) {
 }
 
 void editorFind(){
-	char* query = editorPrompt("Find [Esc to Cancel]: %s");
-	if (query == NULL) return;
-
-	for(int i = 0; i < E.numRows; i++){
-		erow* row = &E.row[i];
-		char* match = strstr(row->render, query);
-		if (match){
-			E.cy = i;
-			E.cx = match - row->render;
-			E.rowoff = E.numRows;
-			break;
-		}
-	}
+	int prev_cx = E.cx;
+	int prev_cy = E.cy;
+	int prev_rowOff = E.rowOff;
+	int prev_colOff = E.colOff;
+	char* query = editorPrompt("Find [Esc to Cancel]: %s", editorFindCallback);
+	if (query){
 	free(query);
+	}
+	else{
+		E.cx = prev_cx;
+		E.cy = prev_cy;
+		E.rowOff = prev_rowOff;
+		E.colOff = prev_colOff;
+	}
 }
 
-char* editorPrompt(char* prompt)
+char* editorPrompt(char* prompt,void (*callback) (char *,int))
 {
 size_t bufSize = 128;
 char* buf = malloc(bufSize);
@@ -151,12 +189,14 @@ while(1){
 	}
 	else if(c == '\x1b'){
 		editorSetStatusMessage("");
+		if(callback) callback(buf, c);
 		free(buf);
 		return NULL;
 	}
 	else if(c == '\r'){
 		if( buflen != 0){
 			editorSetStatusMessage("");
+			if (callback) callback(buf, c);
 			return buf;
 		}
 	}else if(!iscntrl(c)  && c < 128){
@@ -167,6 +207,7 @@ while(1){
 		buf[buflen++] = c;
 		buf[buflen] = '\0';
 	}
+	if(callback) callback(buf, c);
 }
 
 }
@@ -244,7 +285,7 @@ E.dirty++;
 void editorSave()
 {
 if (E.filename == NULL){
-	E.filename = editorPrompt("Save as: %s [ESC to Cancel]");
+	E.filename = editorPrompt("Save as: %s [ESC to Cancel]",NULL);
 	if(E.filename == NULL){
 		editorSetStatusMessage("Save Aborted");
 		return;
@@ -709,7 +750,11 @@ void editorProcessKeyprocess()
         write(STDOUT_FILENO, "\x1b[2J", 4);
         write(STDOUT_FILENO, "\x1b[H", 3);
 		exit(EXIT_SUCCESS);
-		break;
+    		break;
+    case CTRL_KEY('f'):
+	editorFind();
+	break;
+
     case CTRL_KEY('s'):
 	editorSave();
 	break;
@@ -842,7 +887,7 @@ int main(int argc, char* argv[])
     {
         editorOpen(argv[1]);
     }
-    editorSetStatusMessage("Help : Ctrl-q = Quit Ctrl-S = Save");
+    editorSetStatusMessage("Help : Ctrl-q = Quit or Ctrl-S = Save or Ctrl-F: Find");
     while (1)
     {
         /*
