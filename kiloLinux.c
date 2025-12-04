@@ -684,20 +684,27 @@ abAppend(ab,welcome,welcomelen);
 	if(len > E.screenCols) len = E.screenCols;
 	char* c = &E.row[fileRow].render[E.colOff];
 	unsigned char *hl = &E.row[fileRow].hl[colOff];
+	int current_color = -1;
 	int j;
 	for(j = 0; j<len;j++){
 		if (hl[j] == HL_NORMAL){
+			if (current_color = -1){
 			abAppend(ab,"\x1b[39m",5);
-			abAppend(ab, &c[j],1);
+			current_color = -1;
+			}
+			abAppend(ab, &c[j],1);	
 		} else{
 			int color = editorSyntaxToColor(hl[j]);
-			char buf[16];
-			int clen = snprintf(buf, sizeof(buf), "\x1b[%dm",color);
-			abAppend(ab, buf, clen);
+			if (color != current_color){
+					current_color = color;
+				char buf[16];
+				int clen = snprintf(buf, sizeof(buf), "\x1b[%dm",color);
+				abAppend(ab, buf, clen);
+			}
 			abAppend(ab, &c[j], 1);
 		}
 	}
-	abAppend(ab,&E.row[fileRow].render[E.colOff],len);
+	abAppend(ab, "\x1b[39m",5);
 		}
 	abAppend(ab,"\x1b[K",3);
 //	if(y < E.screenRows - 1 ){
