@@ -59,10 +59,47 @@ enum editorKey
 	DEL_KEY
 };
 
+struct editorConfig E;
+
 void die(const char*);
 void disableRawMode();
 void enableRawMode();
 int editorReadKey();
+void initEditor();
+int8_t getWindowsSize(uint16_t*, uint16_t*);
+
+void initEditor(){
+    E.cx = 0;
+    E.cy = 0;
+    E.rx = 0;
+    E.numRows = 0;
+    E.rowOff = 0;
+    E.colOff = 0;
+    E.row = NULL;
+    E.filename = NULL;
+    E.statusmsg[0] = '\0';
+    E.statusmsg_time = 0;
+
+    if(getWindowsSize(&E.screenRows,&E.screenCols) == -1) die("init error");
+    E.screenRows -= 2;
+}
+
+int8_t getWindowsSize(uint16_t *x, uint16_t *y){
+    HANDLE hOut = g_hStdout ? g_hStdout : GetStdHandle(STD_OUTPUT_HANDLE);
+    if(hOut == INVALID_HANDLE_VALUE) return -1;
+
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if(!GetConsoleScreenBufferInfo(hOut, &csbi)) return -1;
+    
+    SHORT cols = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    SHORT rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+    if (cols <= 0 || rows <= 0) return -1;
+
+    *x = (uint16_t)rows;
+    *y = (uint16_t)cols;
+    return 0;
+    
+}
 
 int editorReadKey(){
     INPUT_RECORD rec;
@@ -92,7 +129,7 @@ int editorReadKey(){
         case VK_NEXT: return PAGE_DOWN;
         // case VK_BACK: return BACKSPACE;
         case VK_DELETE: return DEL_KEY;
-        default:    break;
+        default:   break;
         }
     }
     
@@ -143,6 +180,7 @@ void enableRawMode() {
 
 int main(){
     enableRawMode();
+    initEditor();
     char c;
 
     while(1){
