@@ -61,12 +61,42 @@ enum editorKey
 
 struct editorConfig E;
 
+void editorSetStatusMessage(const char* fmt,...);
+void editorOpen(char*);
 void die(const char*);
 void disableRawMode();
 void enableRawMode();
 int editorReadKey();
 void initEditor();
 int8_t getWindowsSize(uint16_t*, uint16_t*);
+
+void editorSetStatusMessage(const char* fmt,...){
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(E.statusmsg,sizeof(E.statusmsg),fmt,ap);
+    va_end(ap);
+    E.statusmsg_time = time(NULL);
+}
+
+void editorOpen(char* filename){
+    FILE* fp = fopen(filename,"r");
+    if(!fp) die("fopen");
+    free(E.filename);
+	E.filename = strdup(filename);
+	char* line = NULL;
+    size_t linecap = 0;
+	ssize_t linelen;
+    while( (linelen = getline(&line,&linecap,fp)) != -1){
+        while(linelen > 0 && (line[linelen-1] == '\n' || line[linelen-1] == '\r'))
+        {
+            linelen --;
+        }
+            editorInsertRow(E.numRows,line,linelen);
+            }
+    free(line);
+    fclose(fp);
+	E.dirty = 0;
+}
 
 void initEditor(){
     E.cx = 0;
@@ -178,10 +208,15 @@ void enableRawMode() {
 }
 
 
-int main(){
+int main(int argc, char* argv[]){
     enableRawMode();
     initEditor();
     char c;
+
+    if (argc >= 2){
+        editorOpen(argv[1]);
+    }
+
 
     while(1){
         c = '\0';
