@@ -17,12 +17,86 @@ static HANDLE g_hStdout = NULL;
 static DWORD g_origInMode = 0;
 static DWORD g_origOutMode = 0;
 
+typedef struct erow{
+int size;
+int rsize;
+char* chars;
+char* render;
+unsigned char *hl;
+} erow;
+
+struct editorConfig{
+int cx,cy;
+int rx;
+int rowOff;
+int colOff;
+uint16_t screenRows;
+uint16_t screenCols;
+int numRows;
+erow *row;
+char* filename;
+int dirty;
+char statusmsg[80];
+time_t statusmsg_time;
+};
+
+typedef struct abuf{
+char* b;
+int len;
+} abuf;
+
+enum editorKey
+{
+	BACKSPACE=127,
+	ARROW_LEFT=1000,
+	ARROW_RIGHT,
+	ARROW_UP,
+	ARROW_DOWN,
+	PAGE_UP,
+	PAGE_DOWN,
+	HOME_KEY,
+	END_KEY,
+	DEL_KEY
+};
+
 void die(const char*);
 void disableRawMode();
 void enableRawMode();
 int editorReadKey();
 
+int editorReadKey(){
+    INPUT_RECORD rec;
+    DWORD cnt;
+    while (1)
+    {
+        if (!ReadConsoleInput(g_hStdin, &rec, 1, &cnt)) die("ReadConsoleInput");
+        if (rec.EventType != KEY_EVENT) continue;
+        KEY_EVENT_RECORD key = rec.Event.KeyEvent;
+        if (!key.bKeyDown) continue;
 
+        char ch = key.uChar.AsciiChar;
+        if(ch) {
+            if((unsigned char)ch == 127) return BACKSPACE;
+            return (int)ch;
+        }
+
+        switch (key.wVirtualKeyCode)
+        {
+        case VK_LEFT: return ARROW_LEFT;
+        case VK_RIGHT: return ARROW_RIGHT;
+        case VK_UP: return ARROW_UP;   
+        case VK_DOWN: return ARROW_DOWN;
+        case VK_HOME: return HOME_KEY;
+        case VK_END: return END_KEY;
+        case VK_PRIOR: return PAGE_UP;
+        case VK_NEXT: return PAGE_DOWN;
+        // case VK_BACK: return BACKSPACE;
+        case VK_DELETE: return DEL_KEY;
+        default:    break;
+        }
+    }
+    
+}
 
 void die(const char *s){
     perror(s);
