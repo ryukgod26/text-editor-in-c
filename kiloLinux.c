@@ -76,6 +76,7 @@ enum editorKey
 
 struct editorConfig E;
 
+int is_separator(int);
 int editorSyntaxToColor(int);
 void editorUpdateSyntax(erow*);
 void editorFindCallback(char*, int);
@@ -115,6 +116,10 @@ int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 // void editorAppendRow(char* s,size_t len);
 void editorInsertRow(int, char*,size_t);
 
+int is_separator(int c) {
+	return isspace(c) || c == '\0' || strchr(",.()[]+-*/=~%<>",c) != NULL;
+}
+
 int editorSyntaxToColor(int hl){
 	switch(hl){
 		case HL_NUMBER: return 31;
@@ -124,13 +129,22 @@ int editorSyntaxToColor(int hl){
 }
 
 void editorUpdateSyntax(erow* row){
+
 	row->hl = realloc(row->hl, row->rsize);
 	memset(row->hl, HL_NORMAL, row->rsize);
-	
-	for(int i = 0; i < row->rsize; i++) {
-		if (isdigit(row->render[i])){
-		row->hl[i] = HL_NUMBER;
+	int prev_sep = 1;
+	int i = 0;
+	while(i < row->rsize) {
+		char c = row->render[i];
+		unsigned char prev_hl = (i > 0} ? row->hl[i-1] : HL_NORMAL;
+		if (isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)){
+			row->hl[i] = HL_NUMBER;
+			prev_sep = 0;
+			i++;
+			continue;
 		}
+		prev_sep = is_separator(c);
+		i++
 	}
 }
 
