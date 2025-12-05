@@ -6,9 +6,8 @@
 #define KILO_VERSION "1.0.1"
 #define TAB_STOP 8
 #define KILO_QUIT_TIMES 3
-#define  HL_HIGHLIGHT_NUMBERS (1<<0)
+#define HL_HIGHLIGHT_NUMBERS (1<<0)
 #define HL_HIGHLIGHT_STRINGS (1<<1)
-
 
 #include <termios.h>
 #include <unistd.h>
@@ -24,6 +23,7 @@
 #include <time.h>
 #include <stdarg.h>
 #include <fcntl.h>
+#include<stdbool.h>
 
 typedef struct erow{
 int size;
@@ -32,6 +32,13 @@ char* chars;
 char* render;
 unsigned char *hl;
 } erow;
+
+struct editorSyntax{
+	char *filetype;
+	char **filematch;
+	char *single_comment_start;
+	int flags;
+}
 
 struct editorConfig{
 int cx,cy;
@@ -47,6 +54,7 @@ int dirty;
 char statusmsg[80];
 time_t statusmsg_time;
 struct termios orig_termios;
+struct editorSyntax syntax;
 };
 
 typedef struct abuf{
@@ -83,6 +91,7 @@ struct editorSyntax HLDB[] ={
 	{
 	"c",
 	C_HL_extensions,
+	"//",
 	HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS,
 	},
 }
@@ -161,6 +170,7 @@ int editorSyntaxToColor(int hl){
 		case HL_NUMBER: return 31;
 		case HL_MATCH: return 34;
 		case HL_STRING: return 35;
+		case HL_COMMENT: return 36;
 		default: return 37;
 	}
 }
@@ -170,13 +180,45 @@ void editorUpdateSyntax(erow* row){
 	row->hl = realloc(row->hl, row->rsize);
 	memset(row->hl, HL_NORMAL, row->rsize);
 	if (E.syntax == NULL) return;
+
+	char *scs = E.syntax->single_comment_start;
+	int scs_len = scs ? strlen(scs) : 0;
 	int prev_sep = 1;
+	int in_string = 0;
 	int i = 0;
 	while(i < row->rsize) {
 		char c = row->render[i];
 		unsigned char prev_hl = (i > 0) ? row->hl[i-1] : HL_NORMAL;
-		
-		if (E.syntax->flags & HL_NUMBER){
+
+		if (scs && !in_string){
+			if(!strcmp(&row->render,scs,scs_len)){
+				memset(&row->hl[i], HL_COMMENT, row->rsize - i);
+				break;
+			}
+		}
+
+		if (E.syntax->flags & HL_HIGHLIGHT_STRINGS){
+			if(in_string){
+				row->hl[i] = HL_STRING;
+				if (c == "\\"  && i +1 < row->rsize){
+					row->hl[i + 1] = HL_STRING;
+					i += 2;
+					continue;
+				}
+				if (c == in_string) in_string = 0;
+				i++;
+				prev_sep = 0;
+				continue;
+			}else{
+				if (c == "" || c == "\'") {
+					in_string = c;
+					row->hl[i] = HL_STRING;
+					i++;
+					continue;
+				}
+			}
+		}
+		if (E.syntax->flags & HL_HIGHLIGHT_STRINGS){
 		if ((isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)) || (c == '.' && prev_hl == HL_NUMBER)){
 			row->hl[i] = HL_NUMBER;
 			prev_sep = 0;
@@ -977,6 +1019,7 @@ void initEditor()
     if(getWindowsSize(&E.screenRows,&E.screenCols) == -1) die("init error");
     //for status bar
     E.screenRows -= 2;
+	E.syntax = NULL;
 }
 
 void enableRawMode()
