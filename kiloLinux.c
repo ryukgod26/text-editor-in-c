@@ -75,6 +75,7 @@ enum editorKey
 
 struct editorConfig E;
 
+void editorSelectSyntaxHighlight();
 int is_separator(int);
 int editorSyntaxToColor(int);
 void editorUpdateSyntax(erow*);
@@ -115,6 +116,30 @@ int8_t getCursorPosition(uint16_t* rows, uint16_t* cols);
 // void editorAppendRow(char* s,size_t len);
 void editorInsertRow(int, char*,size_t);
 
+void editorSelectSyntaxHighlight(){
+	E.syntax = NULL;
+	if (E.filename == NULL) return;
+
+	char* ext = strrchr(E.filename, '.');
+	for(unsigned int i = 0; j < HLDB_ENTRIES; j++){
+		struct editorSyntax* s = &HLDB[j];
+		unsigned int i = 0;
+		while(s->filematch[i]) {
+			int is_ext = (s->filematch[i][0] == '.');
+			if ((is_ext && ext && !strcmp(ext, s->filematch[i])) ||
+				(!is_ext && strstr(E.filename, s->filematch[i]))){
+				E.syntax = s;
+				int filerow;
+				for(filerow = 0; filerow < E.numRows; filerow++){
+					editorUpdateSyntax(&E.row[filerow]);
+				}
+				return;
+			}
+			i++;
+		}
+	}
+}
+
 int is_separator(int c) {
 	return isspace(c) || c == '\0' || strchr(",.()[]+-*/=~%<>",c) != NULL;
 }
@@ -131,16 +156,20 @@ void editorUpdateSyntax(erow* row){
 
 	row->hl = realloc(row->hl, row->rsize);
 	memset(row->hl, HL_NORMAL, row->rsize);
+	if (E.syntax == NULL) return;
 	int prev_sep = 1;
 	int i = 0;
 	while(i < row->rsize) {
 		char c = row->render[i];
 		unsigned char prev_hl = (i > 0) ? row->hl[i-1] : HL_NORMAL;
+		
+		if (E.syntax->flags & HL_NUMBER){
 		if ((isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)) || (c == '.' && prev_hl == HL_NUMBER)){
 			row->hl[i] = HL_NUMBER;
 			prev_sep = 0;
 			i++;
 			continue;
+		}
 		}
 		prev_sep = is_separator(c);
 		i++
@@ -345,6 +374,7 @@ if (E.filename == NULL){
 		editorSetStatusMessage("Save Aborted");
 		return;
 	}
+	editorSelectSyntaxHighlight();
 }
 
 int len;
@@ -437,8 +467,8 @@ int len = snprintf(status,sizeof(status),"%.20s - %d lines %s",
 		E.filename ? E.filename : "[No Name]",E.numRows,
 		E.dirty ? "(modifies)" : ""
 		);
-int rlen = snprintf(rstatus,sizeof(rstatus),"%d %d",
-		E.cy + 1,E.cx +1);
+int rlen = snprintf(rstatus,sizeof(rstatus),"%s | %d%d",
+		E.syntax ? E.syntax->filetype : "no ft", E.cy + 1, E.numRows) ;
 if (len > E.screenCols) len = E.screenCols;
 abAppend(ab,status,len);
 while (len < E.screenCols)
@@ -530,7 +560,7 @@ memmove(&E.row[at+1],&E.row[at],sizeof(erow) * (E.numRows - at));
 // int at = E.numRows;
 E.row[at].size = len;
 E.row[at].chars = malloc(len+1);
-memcpy(E.row[at].chars,s,len);
+memcpy(.row[at].chars,s,len);
 E.row[at].chars[len] = '\0';
 E.row[at].rsize = 0;
 E.row[at].render = NULL;
@@ -551,6 +581,7 @@ void editorOpen(char* filename)
     if(!fp) die("fopen");
 	free(E.filename);
 	E.filename = strdup(filename);
+	 editorSelectSyntaxHighlight();
 	char* line = NULL;
     size_t linecap = 0;
 	ssize_t linelen;
