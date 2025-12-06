@@ -29,6 +29,8 @@ typedef struct erow
 {
 	int size;
 	int rsize;
+	int idx;
+	bool hl_open_comment;
 	char *chars;
 	char *render;
 	unsigned char *hl;
@@ -43,7 +45,7 @@ struct editorSyntax
 	char *multiline_comment_start;
 	char *multiline_comment_end;
 	int flags;
-}
+};
 
 struct editorConfig
 {
@@ -112,7 +114,7 @@ struct editorSyntax HLDB[] = {
 		"//","/*","*/",
 		HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS,
 	},
-}
+};
 
 void editorSelectSyntaxHighlight();
 int is_separator(int);
@@ -162,7 +164,7 @@ void editorSelectSyntaxHighlight()
 		return;
 
 	char *ext = strrchr(E.filename, '.');
-	for (unsigned int i = 0; j < HLDB_ENTRIES; j++)
+	for (unsigned int j = 0; j < HLDB_ENTRIES; j++)
 	{
 		struct editorSyntax *s = &HLDB[j];
 		unsigned int i = 0;
@@ -233,13 +235,13 @@ void editorUpdateSyntax(erow *row)
 	int prev_sep = 1;
 	int in_string = 0;
 	int i = 0;
-	int in_comment = 0;
+	bool in_comment = (row->idx > 0 && E.row[row->idx - 1].hl_open_comment);
 	while (i < row->rsize)
 	{
 		char c = row->render[i];
 		unsigned char prev_hl = (i > 0) ? row->hl[i - 1] : HL_NORMAL;
 
-		if (scs_len && !in_string)
+		if (scs_len && !in_string && !in_comment)
 		{
 			if (!strncmp(&row->render, scs, scs_len))
 			{
@@ -333,6 +335,10 @@ void editorUpdateSyntax(erow *row)
 		prev_sep = is_separator(c);
 		i++
 	}
+	bool is_changed = (row->hl_open_comment != in_comment);
+	row->hl_open_comment = in_comment;
+	if (is_changed && row->idx + 1 < E.numRows)
+		editorUpdateSyntax(&E.row[row->idx + 1]);
 }
 
 void editorFindCallback(char *query, int key)
@@ -521,6 +527,7 @@ void editorDelRow(int at)
 		return;
 	editorFreeRow(&E.row[at]);
 	memmove(&E.row[at], &E.row[at + 1], sizeof(erow) * (E.numRows - at - 1));
+	for(int j = at; j < E.numRows - 1 ; j++) E.row[at].idx--;
 	E.numRows--;
 	E.dirty++;
 }
@@ -770,7 +777,10 @@ void editorInsertRow(int at, char *s, size_t len)
 
 	E.row = realloc(E.row, sizeof(erow) * (E.numRows + 1));
 	memmove(&E.row[at + 1], &E.row[at], sizeof(erow) * (E.numRows - at));
+	for(int j = at +1; j <= E.numRows; j++) E.row[j].idx++;
 	// int at = E.numRows;
+	E.row[at].idx = at;
+	E.row[at].hl_open_comment = false;
 	E.row[at].size = len;
 	E.row[at].chars = malloc(len + 1);
 	memcpy(.row[at].chars, s, len);
