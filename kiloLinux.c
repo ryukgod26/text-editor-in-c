@@ -99,49 +99,50 @@ enum editorKey
 };
 
 struct editorConfig E;
-char *C_HL_extensions[] = {".c", ".h", ".cpp", NULL};
+char *C_HL_extensions[] = {".c", ".h", ".cpp", ".hpp", NULL};
 char *C_HL_keywords[] = {
-    "switch", "if", "while", "for", "break", "continue", "return", "else",
-    "do", "goto", "case", "default",
-    
-    "struct", "union", "typedef", "enum", "class",
-    
-    "static", "extern", "auto", "register", "const", "volatile", "mutable",
-    
-    "namespace", "using", "template", "typename", "inline", "virtual",
-    "explicit", "friend", "operator", "this", "new", "delete",
-    "public", "private", "protected", "try", "catch", "throw",
-    "dynamic_cast", "static_cast", "const_cast", "reinterpret_cast",
-    "typeid", "nullptr", "constexpr", "decltype", "noexcept",
-    "override", "final", "alignas", "alignof", "thread_local",
+	"switch", "if", "while", "for", "break", "continue", "return", "else",
+	"do", "goto", "case", "default",
+
+	"struct", "union", "typedef", "enum", "class",
+
+	"static", "extern", "auto", "register", "const", "volatile", "mutable",
+
+	"namespace", "using", "template", "typename", "inline", "virtual",
+	"explicit", "friend", "operator", "this", "new", "delete",
+	"public", "private", "protected", "try", "catch", "throw",
+	"dynamic_cast", "static_cast", "const_cast", "reinterpret_cast",
+	"typeid", "nullptr", "constexpr", "decltype", "noexcept",
+	"override", "final", "alignas", "alignof", "thread_local",
 
 	"#include", "#define", "DWORD", "HANDLE",
-    
-    "int|", "long|", "short|", "double|", "float|", "char|", 
-    "unsigned|", "signed|", "void|", "bool|", "wchar_t|",
-    
-    "size_t|", "ptrdiff_t|", "nullptr_t|", "int8_t|", "int16_t|",
-    "int32_t|", "int64_t|", "uint8_t|", "uint16_t|", "uint32_t|",
-    "uint64_t|", "intptr_t|", "uintptr_t|",
+
+	"int|", "long|", "short|", "double|", "float|", "char|",
+	"unsigned|", "signed|", "void|", "bool|", "wchar_t|",
+
+	"size_t|", "ptrdiff_t|", "nullptr_t|", "int8_t|", "int16_t|",
+	"int32_t|", "int64_t|", "uint8_t|", "uint16_t|", "uint32_t|",
+	"uint64_t|", "intptr_t|", "uintptr_t|",
 
 	"FILE|", "size_t|", "ssize_t|", "off_t|", "time_t|", "clock_t|",
-    "va_list|", "jmp_buf|", "sig_atomic_t|", "fpos_t|", "div_t|",
-    "ldiv_t|", "mbstate_t|", "wctrans_t|", "wctype_t|", "wint_t|",
-    
-    "string|", "vector|", "map|", "set|", "list|", "deque|", "queue|",
-    "stack|", "pair|", "tuple|", "array|", "bitset|", "unique_ptr|",
-    "shared_ptr|", "weak_ptr|", "function|", "optional|", "variant|",
-    "any|", "string_view|", "span|",
-    
-    NULL
-};
+	"va_list|", "jmp_buf|", "sig_atomic_t|", "fpos_t|", "div_t|",
+	"ldiv_t|", "mbstate_t|", "wctrans_t|", "wctype_t|", "wint_t|",
+
+	"string|", "vector|", "map|", "set|", "list|", "deque|", "queue|",
+	"stack|", "pair|", "tuple|", "array|", "bitset|", "unique_ptr|",
+	"shared_ptr|", "weak_ptr|", "function|", "optional|", "variant|",
+	"any|", "string_view|", "span|",
+
+	NULL};
 
 struct editorSyntax HLDB[] = {
 	{
 		"c",
 		C_HL_extensions,
 		C_HL_keywords,
-		"//","/*","*/",
+		"//",
+		"/*",
+		"*/",
 		HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS,
 	},
 };
@@ -149,11 +150,11 @@ struct editorSyntax HLDB[] = {
 #define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
 
 void editorSelectSyntaxHighlight();
-int is_separator(int);
+bool is_separator(int);
 int editorSyntaxToColor(int);
 void editorUpdateSyntax(erow *);
 void editorFindCallback(char *, int);
-int editorRowRxToCx(erow *row, int rx);
+int editorRowRxToCx(erow*, int );
 void editorFind();
 char *editorPrompt(char *, void (*callback)(char *, int));
 void editorInsertNewLine();
@@ -219,7 +220,7 @@ void editorSelectSyntaxHighlight()
 	}
 }
 
-int is_separator(int c)
+bool is_separator(int c)
 {
 	return isspace(c) || c == '\0' || strchr(",.()[]+-*/=~%<>", c) != NULL;
 }
@@ -257,7 +258,7 @@ void editorUpdateSyntax(erow *row)
 
 	char *scs = E.syntax->single_comment_start;
 	char *mcs = E.syntax->multiline_comment_start;
-	char *mce  = E.syntax->multiline_comment_end;
+	char *mce = E.syntax->multiline_comment_end;
 	char **keywords = E.syntax->keywords;
 
 	int scs_len = scs ? strlen(scs) : 0;
@@ -282,20 +283,27 @@ void editorUpdateSyntax(erow *row)
 			}
 		}
 
-		if (mcs_len && mce_len && !in_string){
-			if(in_comment){
+		if (mcs_len && mce_len && !in_string)
+		{
+			if (in_comment)
+			{
 				row->hl[i] = HL_MLCOMMENT;
-				if(!strncmp(&row->render[i], mce, mce_len)){
+				if (!strncmp(&row->render[i], mce, mce_len))
+				{
 					memset(&row->hl[i], HL_MLCOMMENT, mce_len);
 					i += mce_len;
 					in_comment = 0;
 					prev_sep = 1;
 					continue;
-				}else{
+				}
+				else
+				{
 					i++;
 					continue;
 				}
-			}else if(!strncmp(&row->render[i], mcs, mcs_len)){
+			}
+			else if (!strncmp(&row->render[i], mcs, mcs_len))
+			{
 				memset(&row->hl[i], HL_MLCOMMENT, mce_len);
 				i += mcs_len;
 				in_comment = 1;
@@ -347,7 +355,7 @@ void editorUpdateSyntax(erow *row)
 			for (j = 0; keywords[j]; j++)
 			{
 				int klen = strlen(keywords[j]);
-				int kw2 = keywords[j][klen - 1] == '|';
+				bool kw2 = keywords[j][klen - 1] == '|';
 				if (kw2)
 					klen--;
 
@@ -366,7 +374,7 @@ void editorUpdateSyntax(erow *row)
 			}
 		}
 		prev_sep = is_separator(c);
-		i++;	
+		i++;
 	}
 	bool is_changed = (row->hl_open_comment != in_comment);
 	row->hl_open_comment = in_comment;
@@ -560,7 +568,8 @@ void editorDelRow(int at)
 		return;
 	editorFreeRow(&E.row[at]);
 	memmove(&E.row[at], &E.row[at + 1], sizeof(erow) * (E.numRows - at - 1));
-	for(int j = at; j < E.numRows - 1 ; j++) E.row[j].idx--;
+	for (int j = at; j < E.numRows - 1; j++)
+		E.row[j].idx--;
 	E.numRows--;
 	E.dirty++;
 }
@@ -810,7 +819,8 @@ void editorInsertRow(int at, char *s, size_t len)
 
 	E.row = realloc(E.row, sizeof(erow) * (E.numRows + 1));
 	memmove(&E.row[at + 1], &E.row[at], sizeof(erow) * (E.numRows - at));
-	for(int j = at +1; j <= E.numRows; j++) E.row[j].idx++;
+	for (int j = at + 1; j <= E.numRows; j++)
+		E.row[j].idx++;
 	// int at = E.numRows;
 	E.row[at].idx = at;
 	E.row[at].hl_open_comment = false;
@@ -1036,12 +1046,14 @@ void editorDrawRows(abuf *ab)
 			int j;
 			for (j = 0; j < len; j++)
 			{
-				if(iscntrl(c[j])){
+				if (iscntrl(c[j]))
+				{
 					char sym = (c[j] <= 26) ? '@' + c[j] : '?';
-					abAppend(ab, "\x1b[7m",4);
+					abAppend(ab, "\x1b[7m", 4);
 					abAppend(ab, &sym, 1);
-					abAppend(ab, "\x1b[m",3);
-					if (current_color != -1){
+					abAppend(ab, "\x1b[m", 3);
+					if (current_color != -1)
+					{
 						char buf[16];
 						int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", current_color);
 						abAppend(ab, buf, clen);
