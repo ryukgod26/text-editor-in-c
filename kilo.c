@@ -1,3 +1,11 @@
+#define CTRL_KEY(k) ((k) & 0x1f)
+#define ABUF_INIT {NULL, 0}
+#define KILO_VERSION "1.2.0"
+#define TAB_STOP 8
+#define KILO_QUIT_TIMES 3
+#define HL_HIGHLIGHT_NUMBERS (1 << 0)
+#define HL_HIGHLIGHT_STRINGS (1 << 1)
+
 #include<stdbool.h>
 #include <io.h>
 #include <fcntl.h>
@@ -68,7 +76,11 @@ void disableRawMode();
 void enableRawMode();
 int editorReadKey();
 void initEditor();
+void editorOpen(char*);
 int8_t getWindowsSize(uint16_t*, uint16_t*);
+void editorInsertChar(int c);
+void editorRowInsertChar(erow* ,int , int );
+void editorUpdateRow(erow*);
 
 void editorSetStatusMessage(const char* fmt,...){
     va_list ap;
@@ -78,11 +90,38 @@ void editorSetStatusMessage(const char* fmt,...){
     E.statusmsg_time = time(NULL);
 }
 
+void editorUpdateRow(erow* row){
+    int tabs = 0;
+    int j = 0;
+    for( j = 0; j< row->size; j++){
+        if (row->chars[j] == '\t')  tabs++;
+    }
+
+    free(row->render);
+    row->render = malloc(row->size + tabs * (TAB_STOP - 1) + 1) ;
+
+    int idx = 0;
+    for( j = 0; j < row->size; j ++){
+        if (row->chars[j] == '\t'){
+            row->render[idx++] = ' ';
+            while (idx % TAB_STOP != 0 ) row->render[idx++] = ' ';
+        }
+        else{
+            row->render[idx++] = row->chars[j];
+        }
+    }
+    row->render[idx] = '\0';
+    row->rsize = idx;
+    editorUpdateSyntax(row);
+}
+
 void editorOpen(char* filename){
     FILE* fp = fopen(filename,"r");
     if(!fp) die("fopen");
     free(E.filename);
 	E.filename = strdup(filename);
+
+    editorSelectSyntaxHighlight();
 	char* line = NULL;
     size_t linecap = 0;
 	ssize_t linelen;
@@ -96,6 +135,28 @@ void editorOpen(char* filename){
     free(line);
     fclose(fp);
 	E.dirty = 0;
+}
+
+void editorInsertChar(int c)
+{
+	if (E.cy == E.numRows)
+	{
+		editorInsertRow(E.numRows, "", 0);
+	}
+	editorRowInsertChar(&E.row[E.cy], E.cx, c);
+	E.cx++;
+}
+
+void editorRowInsertChar(erow *row, int at, int c)
+{
+	if (at < 0 || at > row->size)
+		at = row->size;
+	row->chars = realloc(row->chars, row->size + 2);
+	memmove(&row->chars[at + 1], &row->chars[at], row->size - at + 1);
+	row->size++;
+	row->chars[at] = c;
+	editorUpdateRow(row);
+	E.dirty++;
 }
 
 void initEditor(){
@@ -187,7 +248,7 @@ void enableRawMode() {
     #define ENABLE_QUICK_EDIT_MODE 0x0040
     #endif
     #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
-    #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+      #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
     #endif
     
     DWORD inMode = g_origInMode;
@@ -207,6 +268,29 @@ void enableRawMode() {
     // if( SetConsoleMode(global_hIn, mode) == -1) die("Error on Enabling Raw Mode Set Console Mode");
 }
 
+void editorOpen(char *filename)
+{
+	FILE *fp = fopen(filename, "r");
+	if (!fp)
+		die("fopen");
+	free(E.filename);
+	E.filename = strdup(filename);
+	editorSelectSyntaxHighlight();
+	char *line = NULL;
+	size_t linecap = 0;
+	ssize_t linelen;
+	while ((linelen = getline(&line, &linecap, fp)) != -1)
+	{
+		while (linelen > 0 && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r'))
+		{
+			linelen--;
+		}
+		editorInsertRow(E.numRows, line, linelen);
+	}
+	free(line);
+	fclose(fp);
+	E.dirty = 0;
+}
 
 int main(int argc, char* argv[]){
     enableRawMode();
