@@ -1,5 +1,14 @@
 
 # Kilo Text Editor - A Terminal-Based Text Editor in C
+
+## Demo Video
+
+<video src="https://hc-cdn.hel1.your-objectstorage.com/s/v3/1f766256053f2d92f7eb469dc04aafbf39763190_text_editor_in_c.mp4" controls width="100%">
+  Your browser does not support the video tag.
+</video>
+
+**[▶️ Watch Demo Video](https://hc-cdn.hel1.your-objectstorage.com/s/v3/1f766256053f2d92f7eb469dc04aafbf39763190_text_editor_in_c.mp4)**
+
 ## Project Overview
 
 **Kilo** is a small terminal-based text editor written entirely in C. This project demonstrates the fundamentals of building a text editor from scratch, implementing features like raw mode terminal handling, cursor movement, file I/O, text Highlighting and text manipulation operations. The Text Editor has all the basic Features of a Normal Text Editor and a feature of code editor like syntax Highlighting for c or cpp files.I will try to add Undo/Redo Feature in future.
