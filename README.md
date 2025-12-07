@@ -1,23 +1,12 @@
 
 # Kilo Text Editor - A Terminal-Based Text Editor in C
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![C](https://img.shields.io/badge/language-C-blue.svg)](https://en.wikipedia.org/wiki/C_(programming_language))
-[![Version](https://img.shields.io/badge/version-1.0.1-green.svg)](https://github.com/ryukgod26/text-editor-in-c)
-
 ## Project Overview
 
-**Kilo** is a minimalist terminal-based text editor written entirely in C, inspired by the classic Unix text editors. This project demonstrates the fundamentals of building a text editor from scratch, implementing features like raw mode terminal handling, cursor movement, file I/O, and text manipulation operations.
-
-The editor provides a lightweight, efficient text editing experience directly in the terminal, making it perfect for:
-- Quick file editing in resource-constrained environments
-- Learning how terminal-based editors work internally  
-- Development environments where GUI editors are unavailable
-- System administration tasks requiring minimal dependencies
+**Kilo** is a small terminal-based text editor written entirely in C. This project demonstrates the fundamentals of building a text editor from scratch, implementing features like raw mode terminal handling, cursor movement, file I/O, text Highlighting and text manipulation operations. The Text Editor has all the basic Features of a Normal Text Editor and a feature of code editor like syntax Highlighting for c or cpp files.I will try to add Undo/Redo Feature in future.
 
 ## Key Features
 
-### ✨ Core Editing Features
+### Editing Features
 *   **Full Text Editing:** Insert, delete, and modify text with complete character support
 *   **Multi-line Support:** Handle files with unlimited number of lines
 *   **Cursor Navigation:** Arrow key navigation with proper line wrapping
@@ -25,7 +14,7 @@ The editor provides a lightweight, efficient text editing experience directly in
 *   **Status Bar:** Display filename, line count, cursor position, and modification status
 *   **Message Bar:** Show temporary status messages and prompts
 
-### 🎯 Advanced Functionality
+### Advanced Functionality
 *   **Smart Scrolling:** Viewport scrolling for files larger than terminal size
 *   **Tab Rendering:** Proper tab character handling with configurable tab stops (8 spaces)
 *   **Line Wrapping:** Intelligent cursor movement across line boundaries
@@ -33,7 +22,7 @@ The editor provides a lightweight, efficient text editing experience directly in
 *   **Raw Mode Terminal:** Complete control over terminal input/output
 *   **Cross-platform:** Works on Unix/Linux systems with termios support
 
-### ⌨️ Keyboard Shortcuts
+### Keyboard Shortcuts
 *   **Ctrl+Q:** Quit editor (with unsaved changes warning)
 *   **Ctrl+S:** Save file (prompts for filename if new file)
 *   **Arrow Keys:** Navigate cursor in all directions
@@ -43,35 +32,6 @@ The editor provides a lightweight, efficient text editing experience directly in
 *   **Enter:** Create new line
 *   **ESC:** Cancel current operation
 
-## Architecture & Implementation
-
-### 🏗️ Core Components
-
-The editor is built around several key data structures and modules:
-
-#### Data Structures
-```c
-struct editorConfig {
-    int cx, cy;              // Cursor position (column, row)
-    int rx;                  // Render cursor position (handles tabs)
-    int rowOff, colOff;      // Scrolling offsets
-    uint16_t screenRows, screenCols;  // Terminal dimensions
-    int numRows;             // Number of file rows
-    erow *row;              // Dynamic array of text rows
-    char *filename;         // Current filename
-    int dirty;              // Unsaved changes flag
-    char statusmsg[80];     // Status message buffer
-    time_t statusmsg_time;  // Message timestamp
-    struct termios orig_termios;  // Original terminal settings
-};
-
-typedef struct erow {
-    int size;               // Length of chars array
-    int rsize;              // Length of render array  
-    char *chars;            // Raw text content
-    char *render;           // Rendered text (tabs expanded)
-} erow;
-```
 
 #### Key Modules
 *   **Terminal Management:** Raw mode setup, cursor positioning, screen clearing
@@ -88,55 +48,8 @@ typedef struct erow {
 *   **Buffer-based Rendering:** Minimizes screen flicker with buffered output
 *   **Cross-platform Compatibility:** Works on any POSIX-compliant system
 
-## Prerequisites
 
-Before compiling and running the editor, ensure your system has:
-
-### Required Dependencies
-*   **C Compiler:** GCC 4.8+ or Clang 3.3+ with C99 support
-*   **POSIX System:** Unix, Linux, macOS, or WSL on Windows
-*   **Terminal:** VT100-compatible terminal emulator
-*   **Standard Libraries:** `termios.h`, `unistd.h`, `sys/ioctl.h`
-
-### Verify Installation
-```bash
-# Check compiler
-gcc --version
-
-# Check system headers
-ls /usr/include/termios.h
-ls /usr/include/unistd.h
-```
-
-## Installation & Usage
-
-### 🚀 Quick Start
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/ryukgod26/text-editor-in-c.git
-   cd text-editor-in-c
-   ```
-
-2. **Compile the editor:**
-   ```bash
-   # Using the provided Makefile
-   make
-   
-   # Or compile manually
-   gcc -o kilo kiloLinux.c -std=c99 -Wall -Wextra -pedantic
-   ```
-
-3. **Run the editor:**
-   ```bash
-   # Open existing file
-   ./kilo filename.txt
-   
-   # Start with empty file
-   ./kilo
-   ```
-
-### 📋 Basic Usage
+### Normal Usage
 
 #### Navigation
 *   **Arrow Keys:** Move cursor up, down, left, right
@@ -145,7 +58,7 @@ ls /usr/include/unistd.h
 *   **End:** Jump to end of current line
 
 #### Editing
-*   **Type:** Insert characters at cursor position
+*   **Character Press:** Insert characters at cursor position
 *   **Enter:** Create new line and move cursor down
 *   **Backspace:** Delete character to the left of cursor
 *   **Delete:** Delete character at cursor position
@@ -163,7 +76,7 @@ ls /usr/include/unistd.h
 *   **Message Bar:** Displays temporary messages and prompts
 *   **Welcome Screen:** Shows version info when no file is loaded
 
-### ⚙️ Advanced Features
+### Some Advanced Features
 
 #### Tab Handling
 *   Tabs are rendered as spaces (default: 8 spaces)
@@ -179,470 +92,3 @@ ls /usr/include/unistd.h
 *   Dynamic allocation for text rows
 *   Efficient reallocation when inserting/deleting lines
 *   Automatic cleanup on exit
-
-## API Documentation
-
-### 🔧 Core Functions
-
-#### Terminal Management
-```c
-void enableRawMode()
-```
-Configures terminal for raw input mode, disabling canonical mode and echo.
-- Sets up terminal attributes for direct key processing
-- Registers cleanup function to restore original settings
-
-```c
-void disableRawMode()
-```
-Restores original terminal settings on exit.
-
-```c
-int getWindowsSize(uint16_t *rows, uint16_t *cols)
-```
-Determines terminal dimensions using ioctl or cursor positioning fallback.
-- **Parameters:** Pointers to store screen dimensions
-- **Returns:** 0 on success, -1 on failure
-
-#### File Operations
-```c
-void editorOpen(char *filename)
-```
-Loads a file into the editor buffer.
-- **Parameters:** `filename` - Path to file to open
-- Handles line-by-line reading with proper memory allocation
-- Sets dirty flag to 0 (clean state)
-
-```c
-void editorSave()
-```
-Saves current buffer to file.
-- Prompts for filename if new file
-- Creates backup and handles I/O errors
-- Updates dirty flag and status message
-
-#### Text Manipulation
-```c
-void editorInsertChar(int c)
-```
-Inserts character at current cursor position.
-- **Parameters:** `c` - Character code to insert
-- Handles line extension and cursor advancement
-
-```c
-void editorInsertRow(int at, char *s, size_t len)
-```
-Inserts new text row at specified position.
-- **Parameters:** `at` - Row index, `s` - text content, `len` - text length
-- Reallocates row array and updates render buffer
-
-```c
-void editorDelChar()
-```
-Deletes character at cursor position.
-- Handles backspace and delete operations
-- Merges lines when deleting at line boundaries
-
-#### Display System
-```c
-void editorRefreshScreen()
-```
-Main rendering function that updates the entire screen.
-- Manages scrolling offsets
-- Renders text, status bar, and message bar
-- Uses buffered output to minimize flicker
-
-```c
-void editoDrawRows(abuf *ab)
-```
-Renders text rows within the current viewport.
-- **Parameters:** `ab` - Output buffer for screen content
-- Handles line numbers, welcome message, and text display
-
-### 🎮 Input Processing
-
-#### Keyboard Handling
-```c
-int editorReadKey()
-```
-Reads and processes keyboard input including special keys.
-- **Returns:** Key code (ASCII or special key enum)
-- Handles escape sequences for arrow keys, function keys
-- Supports extended key combinations
-
-```c
-void editorProcessKeyprocess()
-```
-Main input processing loop that handles all key combinations.
-- Manages quit confirmation for unsaved files
-- Routes keys to appropriate handler functions
-
-#### Movement System
-```c
-void editorMoveCursor(int key)
-```
-Handles cursor movement operations.
-- **Parameters:** `key` - Direction key code
-- Implements line wrapping and boundary checking
-- Updates both cursor position and render position
-
-### 🧠 Memory Management
-
-#### Buffer Operations
-```c
-void abAppend(abuf *ab, const char *s, int len)
-```
-Appends text to dynamic buffer with automatic reallocation.
-- **Parameters:** `ab` - buffer, `s` - text to append, `len` - text length
-- Handles memory expansion and error checking
-
-```c
-void abFree(abuf *ab)
-```
-Releases memory allocated for append buffer.
-
-#### Row Management
-```c
-void editorUpdateRow(erow *row)
-```
-Updates the rendered representation of a text row.
-- **Parameters:** `row` - Row structure to update
-- Expands tabs to spaces and calculates render size
-
-## Configuration
-
-### 🛠️ Compile-Time Configuration
-
-The editor can be customized by modifying constants in the source code:
-
-```c
-#define KILO_VERSION "1.0.1"      // Version string
-#define TAB_STOP 8                 // Tab width in spaces  
-#define KILO_QUIT_TIMES 3          // Confirmations needed to quit unsaved
-```
-
-### 🎨 Runtime Behavior
-
-#### Status Messages
-*   Appear in message bar at bottom of screen
-*   Auto-expire after 5 seconds
-*   Show file operations, errors, and help text
-
-#### File Handling
-*   Automatically detects file permissions
-*   Creates new files when saving unnamed buffers  
-*   Preserves original file permissions when saving
-
-#### Terminal Compatibility
-*   Works with VT100-compatible terminals
-*   Handles window resizing gracefully
-*   Supports both hardware and software scrolling
-
-## Troubleshooting
-
-### 🐛 Common Issues
-
-#### **Problem:** Editor doesn't respond to keypresses
-**Solution:** 
-- Ensure terminal supports raw mode
-- Check if running in compatible shell (not Windows cmd)
-- Verify termios headers are available
-
-#### **Problem:** Screen corruption or garbled display  
-**Solution:**
-- Terminal may not support ANSI escape sequences
-- Try different terminal emulator (xterm, gnome-terminal)
-- Check terminal size detection
-
-#### **Problem:** Compilation fails with "termios.h not found"
-**Solution:**
-```bash
-# On Ubuntu/Debian
-sudo apt-get install build-essential
-
-# On CentOS/RHEL  
-sudo yum groupinstall "Development Tools"
-
-# On macOS
-xcode-select --install
-```
-
-#### **Problem:** Segmentation fault when opening large files
-**Solution:**
-- Check available memory
-- File size may exceed system limits
-- Consider splitting large files
-
-#### **Problem:** Can't save files (permission denied)
-**Solution:**
-```bash
-# Check file permissions
-ls -la filename.txt
-
-# Make directory writable
-chmod 755 /path/to/directory
-
-# Run with appropriate permissions
-sudo ./kilo filename.txt
-```
-
-### 🔍 Debug Mode
-
-For debugging, compile with additional flags:
-```bash
-gcc -g -O0 -DDEBUG kiloLinux.c -o kilo_debug
-gdb ./kilo_debug
-```
-
-## Performance Considerations
-
-### ⚡ Optimization Features
-
-#### Memory Efficiency
-*   **Dynamic Allocation:** Only allocates memory for actual file content
-*   **Lazy Rendering:** Renders only visible lines on screen
-*   **Buffer Reuse:** Minimizes memory allocation/deallocation cycles
-
-#### Display Performance  
-*   **Minimal Redraws:** Only updates changed screen regions
-*   **Buffered Output:** Reduces system calls with append buffer
-*   **Cursor Hiding:** Prevents flicker during screen updates
-
-#### File I/O Optimization
-*   **Stream Reading:** Uses `getline()` for efficient file parsing
-*   **Atomic Writes:** Ensures file integrity during save operations
-*   **Error Handling:** Graceful recovery from I/O failures
-
-### 📊 Performance Metrics
-
-| File Size | Load Time | Memory Usage | Scroll Response |
-|-----------|-----------|--------------|-----------------|
-| 1KB       | <1ms      | ~2KB         | Instant         |
-| 100KB     | ~10ms     | ~200KB       | <1ms            |
-| 1MB       | ~100ms    | ~2MB         | <5ms            |
-| 10MB      | ~1s       | ~20MB        | <10ms           |
-
-*Performance measured on standard desktop system (Intel i5, 8GB RAM)*
-
-## Security Considerations
-
-### 🔐 Security Features
-
-#### Input Validation
-*   **Buffer Bounds Checking:** Prevents buffer overflows in input handling
-*   **File Path Sanitization:** Validates file paths to prevent directory traversal
-*   **Memory Safety:** Uses safe string functions and bounds checking
-
-#### File System Security
-*   **Permission Preservation:** Maintains original file permissions
-*   **Atomic Operations:** Prevents partial file writes during interruption
-*   **Temporary File Handling:** Secure creation of backup files
-
-#### Terminal Security
-*   **Signal Handling:** Proper cleanup on unexpected termination
-*   **Raw Mode Isolation:** Limits exposure to terminal escape sequences
-*   **Input Filtering:** Sanitizes control sequences in file content
-
-### ⚠️ Security Notes
-
-*   **File Permissions:** Always verify write permissions before editing system files
-*   **Backup Strategy:** The editor doesn't create automatic backups
-*   **Terminal Escape:** Malicious files with embedded escape sequences are rendered safely
-*   **Memory Limits:** Large files may exhaust system memory
-
-## Development Roadmap
-
-### 🚀 Current Version (1.0.1)
-*   ✅ Basic text editing functionality
-*   ✅ File loading and saving operations  
-*   ✅ Cursor navigation and scrolling
-*   ✅ Status bar and message system
-*   ✅ Unsaved changes protection
-*   ✅ Tab rendering and line handling
-
-### 🎯 Planned Features
-
-#### Version 1.1 - Search & Navigation
-*   🔍 **Find Function:** Text search with highlighting
-*   🔄 **Find & Replace:** Pattern replacement with confirmation
-*   🎯 **Go to Line:** Jump to specific line numbers
-*   📖 **Search History:** Remember recent search terms
-
-#### Version 1.2 - Advanced Editing  
-*   ↩️ **Undo/Redo System:** Multi-level operation history
-*   📋 **Copy/Paste:** Clipboard operations with multiple buffers
-*   🔢 **Line Numbers:** Optional line number display
-*   📏 **Word Wrap:** Soft wrapping for long lines
-
-#### Version 1.3 - Developer Features
-*   🎨 **Syntax Highlighting:** Language-specific code coloring
-*   🔧 **Configuration File:** User-customizable settings
-*   🌙 **Multiple Color Schemes:** Dark/light mode support  
-*   📑 **Multiple Files:** Tab-based multi-file editing
-
-#### Version 2.0 - Extended Functionality
-*   🔌 **Plugin System:** Extensible architecture for add-ons  
-*   📊 **File Browser:** Integrated directory navigation
-*   🔍 **Regex Support:** Advanced pattern matching
-*   🌐 **UTF-8 Support:** Full Unicode character handling
-
-### 🎭 Experimental Features
-*   📱 **Mouse Support:** Click-to-position cursor
-*   🖥️ **Split View:** Horizontal/vertical pane splitting
-*   📈 **Performance Monitor:** Real-time memory/CPU usage
-*   🔄 **Auto-save:** Background file persistence
-
-## Contributing
-
-### 🤝 How to Contribute
-
-We welcome contributions from developers of all skill levels! Here are ways to get involved:
-
-#### 🐛 Bug Reports
-1. Check existing issues on GitHub
-2. Provide minimal reproduction steps
-3. Include system information (OS, terminal, compiler)
-4. Attach relevant files if possible
-
-#### 💡 Feature Requests
-1. Search existing feature requests first
-2. Describe the use case and expected behavior  
-3. Consider implementation complexity
-4. Propose API changes if needed
-
-#### 🔧 Code Contributions
-1. **Fork** the repository
-2. **Create** a feature branch: `git checkout -b feature-name`
-3. **Follow** coding standards (see below)
-4. **Test** your changes thoroughly
-5. **Commit** with clear messages: `git commit -m "Add feature: description"`
-6. **Submit** a pull request with detailed description
-
-### 📋 Development Guidelines
-
-#### Code Style
-```c
-// Function names: camelCase
-void editorInsertChar(int c);
-
-// Variable names: camelCase
-int currentRow = 0;
-
-// Constants: UPPER_SNAKE_CASE
-#define MAX_BUFFER_SIZE 1024
-
-// Struct names: camelCase  
-struct editorConfig {
-    int cursorX;
-    int cursorY;
-};
-```
-
-#### Testing Checklist
-- [ ] Compiles without warnings (`-Wall -Wextra`)
-- [ ] Handles empty files correctly
-- [ ] Manages memory properly (no leaks)
-- [ ] Works with various terminal sizes
-- [ ] Preserves file permissions
-- [ ] Handles keyboard interrupts gracefully
-
-#### Documentation Requirements
-*   Comment all public functions with purpose and parameters
-*   Update README.md for new features
-*   Include usage examples for complex features
-*   Maintain changelog for version history
-
-### 🏗️ Development Setup
-
-```bash
-# Clone repository
-git clone https://github.com/ryukgod26/text-editor-in-c.git
-cd text-editor-in-c
-
-# Create development build
-make debug
-
-# Run with debugging symbols
-gdb ./kilo
-
-# Run static analysis
-make lint
-
-# Run tests
-make test
-```
-
-## License & Credits
-
-### 📜 License Information
-
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-```
-MIT License
-
-Copyright (c) 2024 ryukgod26
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-```
-
-### 🙏 Acknowledgments
-
-*   **Build Your Own Text Editor Tutorial** - Original inspiration and guidance
-*   **VT100 Terminal Specification** - ANSI escape sequence reference  
-*   **POSIX Standards** - Terminal interface specifications
-*   **GNU C Library Documentation** - System call references
-*   **Open Source Community** - Continuous feedback and improvements
-
-### 🔗 Related Projects
-
-*   **[Nano](https://www.nano-editor.org/)** - Another minimal terminal editor
-*   **[Vim](https://www.vim.org/)** - Advanced modal text editor  
-*   **[Emacs](https://www.gnu.org/software/emacs/)** - Extensible text editor
-*   **[Micro](https://micro-editor.github.io/)** - Modern terminal editor
-
----
-
-## Quick Reference Card
-
-### ⌨️ Essential Shortcuts
-| Key Combination | Action |
-|-----------------|--------|
-| `Ctrl+Q` | Quit (warns if unsaved) |
-| `Ctrl+S` | Save file |
-| `Arrow Keys` | Move cursor |
-| `Page Up/Down` | Scroll by screen |
-| `Home/End` | Line beginning/end |
-| `Enter` | New line |
-| `Backspace` | Delete left |
-| `Delete` | Delete right |
-
-### 🚀 Quick Start Commands
-```bash
-# Compile
-make
-
-# Edit existing file  
-./kilo myfile.txt
-
-# Create new file
-./kilo
-
-# Help
-./kilo --help
-```
-
----
-
-**Happy Editing!** 🎉
-
-*For support, feature requests, or bug reports, please visit our [GitHub repository](https://github.com/ryukgod26/text-editor-in-c).*
-
